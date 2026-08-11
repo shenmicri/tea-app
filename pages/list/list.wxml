@@ -1,0 +1,28 @@
+<view class="page">
+  <view class="head">
+    <view class="head-title serif">我的茶叶档案</view>
+    <view class="head-sub">档案内容全部由商家提供</view>
+  </view>
+
+  <view class="hairline"></view>
+
+  <block wx:if="{{archives.length > 0}}">
+    <view class="row" wx:for="{{archives}}" wx:key="id">
+      <view class="row-main" bindtap="onItemTap" data-id="{{item.id}}">
+        <view class="row-name serif">{{item.name}}</view>
+        <view class="row-meta">
+          <text wx:if="{{item.category}}">{{item.category}}</text>
+          <text wx:if="{{item.category}}" class="dot">·</text>
+          <text>更新于 {{item.updatedText}}</text>
+        </view>
+      </view>
+      <view class="row-qr" bindtap="onQrcodeTap" data-id="{{item.id}}">二维码</view>
+    </view>
+  </block>
+
+  <view class="empty" wx:elif="{{loaded}}">
+    还没有茶叶档案，点右下角开始创建第一份。
+  </view>
+
+  <view class="fab" bindtap="onCreateTap">＋</view>
+</view>

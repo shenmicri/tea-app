@@ -1,0 +1,109 @@
+<view class="page">
+
+  <!-- 五个固定区块，顺序与内容全部来自 config/schema.js -->
+  <view class="section" wx:for="{{SECTIONS}}" wx:for-item="sec" wx:key="key">
+    <view class="section-head" bindtap="onToggleSection" data-key="{{sec.key}}">
+      <text class="section-title">{{sec.title}}</text>
+      <text class="section-toggle">{{collapsed[sec.key] ? '展开' : '收起'}}</text>
+    </view>
+
+    <view class="section-body" wx:if="{{!collapsed[sec.key]}}">
+      <view class="field" wx:for="{{sec.fields}}" wx:for-item="f" wx:key="key">
+        <view class="label">
+          {{f.label}}<text class="req" wx:if="{{f.required}}">（必填）</text>
+        </view>
+
+        <input
+          wx:if="{{f.type === 'text'}}"
+          class="input"
+          value="{{sections[sec.key][f.key]}}"
+          data-section="{{sec.key}}"
+          data-field="{{f.key}}"
+          bindinput="onFieldInput"
+        />
+
+        <textarea
+          wx:elif="{{f.type === 'textarea'}}"
+          class="textarea"
+          value="{{sections[sec.key][f.key]}}"
+          data-section="{{sec.key}}"
+          data-field="{{f.key}}"
+          bindinput="onFieldInput"
+          auto-height
+        />
+
+        <picker
+          wx:elif="{{f.type === 'picker'}}"
+          range="{{f.options}}"
+          data-section="{{sec.key}}"
+          data-field="{{f.key}}"
+          bindchange="onPickerChange"
+        >
+          <view class="input picker {{sections[sec.key][f.key] ? '' : 'picker-empty'}}">
+            {{sections[sec.key][f.key] || '选择'}}
+          </view>
+        </picker>
+
+        <view wx:elif="{{f.type === 'images'}}" class="images">
+          <view
+            class="image-item"
+            wx:for="{{sections[sec.key][f.key]}}"
+            wx:for-item="src"
+            wx:for-index="imgIndex"
+            wx:key="*this"
+          >
+            <image class="image" src="{{src}}" mode="widthFix" />
+            <view
+              class="image-del"
+              data-section="{{sec.key}}"
+              data-field="{{f.key}}"
+              data-index="{{imgIndex}}"
+              bindtap="onImageDelete"
+            >删除</view>
+          </view>
+          <view class="image-add" data-section="{{sec.key}}" data-field="{{f.key}}" bindtap="onImageAdd">
+            ＋ 添加图片
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 自定义区块 -->
+  <view class="section">
+    <view class="section-head">
+      <text class="section-title">自定义区块</text>
+    </view>
+
+    <view class="section-body">
+      <view class="custom" wx:for="{{customSections}}" wx:key="id">
+        <view class="custom-head">
+          <input
+            class="input custom-title"
+            placeholder="区块标题"
+            placeholder-class="placeholder"
+            value="{{item.title}}"
+            data-index="{{index}}"
+            bindinput="onCustomTitleInput"
+          />
+          <view class="custom-del" data-index="{{index}}" bindtap="onCustomRemove">−</view>
+        </view>
+        <textarea
+          class="textarea"
+          value="{{item.content}}"
+          data-index="{{index}}"
+          bindinput="onCustomContentInput"
+          auto-height
+        />
+      </view>
+
+      <view class="custom-add" bindtap="onCustomAdd">＋ 添加新区块</view>
+    </view>
+  </view>
+
+  <view class="bottom-space"></view>
+</view>
+
+<view class="save-bar">
+  <view class="save {{canSave ? '' : 'save-disabled'}}" bindtap="onSave">保存</view>
+</view>

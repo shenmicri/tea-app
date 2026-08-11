@@ -1,0 +1,46 @@
+page {
+  /* 极浅暖白（近宣纸）、墨色正文、单一茶青强调色、一像素细线 */
+  --paper: #faf8f3;
+  --ink: #33302b;
+  --ink-weak: #6b675f;
+  --muted: #a9a49a;
+  --tea: #6e8272;
+  --line: #e3dfd5;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 30rpx;
+  line-height: 1.8;
+}
+
+/* 标题走宋体，正文保持黑体保证可读性 */
+.serif {
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+
+.page {
+  padding: 40rpx 40rpx 60rpx;
+}
+
+.hairline {
+  height: 1rpx;
+  background: var(--line);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* 区块标题 */
+.section-title {
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 34rpx;
+  color: var(--tea);
+  letter-spacing: 2rpx;
+}
+
+/* 全局去掉按钮默认样式，本项目不用系统按钮外观 */
+button::after {
+  border: none;
+}

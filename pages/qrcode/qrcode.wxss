@@ -1,0 +1,55 @@
+.name {
+  font-size: 44rpx;
+  letter-spacing: 4rpx;
+}
+
+.id {
+  margin: 10rpx 0 40rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.qr-area {
+  padding: 80rpx 0;
+  display: flex;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 440rpx;
+}
+
+/* 占位方块，接上云函数后由 image 替换 */
+.qr-placeholder {
+  width: 440rpx;
+  height: 440rpx;
+  box-sizing: border-box;
+  padding: 0 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--muted);
+  background: #f0ece2;
+}
+
+.tip {
+  font-size: 26rpx;
+  color: var(--ink-weak);
+  line-height: 2;
+}
+
+.save {
+  margin-top: 80rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
+}
+
+.save-disabled {
+  color: var(--muted);
+  background: var(--line);
+}

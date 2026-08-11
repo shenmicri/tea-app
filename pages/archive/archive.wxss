@@ -1,0 +1,75 @@
+.header {
+  padding: 40rpx 0 60rpx;
+}
+
+.header-name {
+  font-size: 56rpx;
+  line-height: 1.4;
+  letter-spacing: 4rpx;
+}
+
+.header-category {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  color: var(--tea);
+  letter-spacing: 2rpx;
+}
+
+.section {
+  border-top: 1rpx solid var(--line);
+  padding: 48rpx 0 24rpx;
+}
+
+.field {
+  padding-bottom: 40rpx;
+}
+
+.label {
+  font-size: 24rpx;
+  color: var(--ink-weak);
+  letter-spacing: 2rpx;
+}
+
+.value {
+  margin-top: 10rpx;
+  font-size: 30rpx;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+/* 未填写的字段弱化，不与有内容的字段争视线 */
+.value-empty {
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: var(--muted);
+}
+
+/* 图片不加圆角、不加边框 */
+.image {
+  width: 100%;
+  display: block;
+  margin-top: 20rpx;
+}
+
+.custom-content {
+  margin-top: 20rpx;
+}
+
+.foot {
+  border-top: 1rpx solid var(--line);
+  padding-top: 48rpx;
+}
+
+.foot-note {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.ai-entry {
+  margin-top: 32rpx;
+  padding: 28rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--muted);
+  border: 1rpx solid var(--line);
+}

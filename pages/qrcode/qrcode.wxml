@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="name serif">{{name}}</view>
+  <view class="id">档案编号 {{id}}</view>
+
+  <view class="hairline"></view>
+
+  <view class="qr-area">
+    <image wx:if="{{qr.ready}}" class="qr-image" src="{{qr.path}}" mode="widthFix" />
+    <view wx:else class="qr-placeholder">{{qr.hint}}</view>
+  </view>
+
+  <view class="tip">把这个码印在茶叶包装上，消费者扫码即可打开这份档案。</view>
+
+  <view class="save save-disabled" bindtap="onSaveTap">保存到相册</view>
+</view>

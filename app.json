@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/list/list",
+    "pages/edit/edit",
+    "pages/archive/archive",
+    "pages/qrcode/qrcode"
+  ],
+  "window": {
+    "backgroundColor": "#faf8f3",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#faf8f3",
+    "navigationBarTitleText": "茶叶档案",
+    "navigationBarTextStyle": "black"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

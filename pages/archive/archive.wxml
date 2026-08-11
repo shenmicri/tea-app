@@ -1,0 +1,50 @@
+<view class="page" wx:if="{{found}}">
+
+  <view class="header">
+    <view class="header-name serif">{{headerName}}</view>
+    <view class="header-category" wx:if="{{headerCategory}}">{{headerCategory}}</view>
+  </view>
+
+  <!-- 区块顺序与字段全部来自 config/schema.js -->
+  <view class="section" wx:for="{{SECTIONS}}" wx:for-item="sec" wx:key="key">
+    <view class="section-title">{{sec.title}}</view>
+
+    <view class="field" wx:for="{{sec.fields}}" wx:for-item="f" wx:key="key">
+      <view class="label">{{f.label}}</view>
+
+      <block wx:if="{{f.type === 'images'}}">
+        <view wx:if="{{sections[sec.key][f.key].length > 0}}">
+          <image
+            class="image"
+            wx:for="{{sections[sec.key][f.key]}}"
+            wx:for-item="src"
+            wx:key="*this"
+            src="{{src}}"
+            mode="widthFix"
+          />
+        </view>
+        <view wx:else class="value-empty">商家未提供</view>
+      </block>
+
+      <block wx:else>
+        <view wx:if="{{sections[sec.key][f.key]}}" class="value">{{sections[sec.key][f.key]}}</view>
+        <view wx:else class="value-empty">商家未提供</view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 自定义区块，排在固定区块之后 -->
+  <view class="section" wx:for="{{customSections}}" wx:key="id">
+    <view class="section-title">{{item.title}}</view>
+    <view class="value custom-content">{{item.content}}</view>
+  </view>
+
+  <view class="foot">
+    <view class="foot-note">本页内容由商家提供。</view>
+    <view class="ai-entry">AI 助手（开发中）</view>
+  </view>
+</view>
+
+<view class="page" wx:elif="{{loaded}}">
+  <view class="value-empty">没有找到这份档案。</view>
+</view>

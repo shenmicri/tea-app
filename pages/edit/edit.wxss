@@ -1,0 +1,146 @@
+.section {
+  border-top: 1rpx solid var(--line);
+}
+
+.section:first-child {
+  border-top: none;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 40rpx 0 12rpx;
+}
+
+.section-toggle {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.section-body {
+  padding-bottom: 40rpx;
+}
+
+.field {
+  padding: 28rpx 0;
+}
+
+.label {
+  font-size: 26rpx;
+  color: var(--ink-weak);
+  margin-bottom: 12rpx;
+}
+
+.req {
+  color: var(--tea);
+  font-size: 24rpx;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 30rpx;
+  color: var(--ink);
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.textarea {
+  min-height: 80rpx;
+  line-height: 1.8;
+}
+
+.picker-empty {
+  color: var(--muted);
+}
+
+.placeholder {
+  color: var(--muted);
+}
+
+.images {
+  padding-top: 8rpx;
+}
+
+.image-item {
+  margin-bottom: 20rpx;
+}
+
+/* 图片不加圆角、不加边框 */
+.image {
+  width: 100%;
+  display: block;
+}
+
+.image-del {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.image-add {
+  padding: 20rpx 0;
+  font-size: 26rpx;
+  color: var(--tea);
+  border-bottom: 1rpx solid var(--line);
+}
+
+.custom {
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.custom-head {
+  display: flex;
+  align-items: center;
+}
+
+.custom-title {
+  flex: 1;
+}
+
+.custom-del {
+  flex: none;
+  width: 72rpx;
+  text-align: right;
+  font-size: 40rpx;
+  color: var(--muted);
+}
+
+.custom-add {
+  padding: 32rpx 0;
+  font-size: 26rpx;
+  color: var(--tea);
+}
+
+.bottom-space {
+  height: 120rpx;
+}
+
+.save-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--paper);
+  border-top: 1rpx solid var(--line);
+  padding: 20rpx 40rpx calc(20rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+}
+
+.save {
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 30rpx;
+  letter-spacing: 4rpx;
+  color: var(--paper);
+  background: var(--tea);
+}
+
+.save-disabled {
+  color: var(--muted);
+  background: var(--line);
+}
