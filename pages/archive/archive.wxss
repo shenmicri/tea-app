@@ -1,75 +1,234 @@
-.header {
-  padding: 40rpx 0 60rpx;
+.archive-page {
+  min-height: 100vh;
+  background: var(--paper);
 }
 
-.header-name {
-  font-size: 56rpx;
-  line-height: 1.4;
-  letter-spacing: 4rpx;
+.hero-image {
+  display: block;
+  width: 100%;
+  height: 780rpx;
 }
 
-.header-category {
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  color: var(--tea);
-  letter-spacing: 2rpx;
+.archive-sheet {
+  position: relative;
+  padding: 96rpx 56rpx 64rpx;
+  background: var(--paper);
 }
 
-.section {
-  border-top: 1rpx solid var(--line);
-  padding: 48rpx 0 24rpx;
+.archive-sheet-raised {
+  margin-top: -86rpx;
+  border-radius: 50% 50% 0 0 / 86rpx 86rpx 0 0;
 }
 
-.field {
-  padding-bottom: 40rpx;
+.identity {
+  text-align: left;
 }
 
-.label {
-  font-size: 24rpx;
+.identity-name {
+  color: var(--ink);
+  font-size: 92rpx;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 10rpx;
+}
+
+.identity-category {
+  margin-top: 18rpx;
+  color: var(--gold);
+  font-size: 28rpx;
+  letter-spacing: 6rpx;
+}
+
+.identity-rule {
+  width: 70rpx;
+  height: 2rpx;
+  margin: 34rpx 0 30rpx;
+  background: var(--gold);
+}
+
+.identity-summary {
+  max-width: 620rpx;
+  margin: 0;
   color: var(--ink-weak);
+  font-size: 31rpx;
+  line-height: 1.9;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.identity-code {
+  margin-top: 24rpx;
+  color: var(--muted);
+  font-size: 22rpx;
   letter-spacing: 2rpx;
 }
 
-.value {
-  margin-top: 10rpx;
-  font-size: 30rpx;
-  line-height: 1.9;
-  white-space: pre-wrap;
+.accordions {
+  margin-top: 72rpx;
+  border-top: 1rpx solid var(--line);
 }
 
-/* 未填写的字段弱化，不与有内容的字段争视线 */
-.value-empty {
-  margin-top: 10rpx;
-  font-size: 26rpx;
+.archive-section {
+  border-bottom: 1rpx solid var(--line);
+}
+
+.section-head {
+  min-height: 148rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-leading,
+.field-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.section-icon-wrap {
+  flex: none;
+  width: 76rpx;
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid var(--gold);
+  border-radius: 50%;
+}
+
+.section-icon {
+  width: 42rpx;
+  height: 42rpx;
+}
+
+.section-name {
+  margin-left: 24rpx;
+  color: var(--ink);
+  font-size: 38rpx;
+  letter-spacing: 2rpx;
+}
+
+.section-state {
+  flex: none;
+  margin-left: 20rpx;
+  color: var(--gold);
+  font-size: 22rpx;
+  letter-spacing: 2rpx;
+}
+
+.section-none {
   color: var(--muted);
 }
 
-/* 图片不加圆角、不加边框 */
-.image {
-  width: 100%;
-  display: block;
+.section-head-empty {
+  opacity: 0.78;
+}
+
+.section-head-active {
+  opacity: 0.66;
+}
+
+.section-content {
+  padding: 12rpx 0 16rpx;
+}
+
+.archive-field {
+  padding: 28rpx 0 42rpx;
+}
+
+.field-icon-wrap {
+  flex: none;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid #d7c49f;
+  border-radius: 50%;
+}
+
+.field-heading {
+  padding-left: 92rpx;
+}
+
+.field-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.field-label {
+  margin-left: 16rpx;
+  color: var(--gold);
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+}
+
+.field-value {
   margin-top: 20rpx;
+  color: var(--ink-weak);
+  font-size: 29rpx;
+  line-height: 1.95;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.media-gallery {
+  margin-top: 22rpx;
+}
+
+.media-card + .media-card {
+  margin-top: 24rpx;
+}
+
+.archive-media-image,
+.archive-media-video {
+  display: block;
+  width: 100%;
+  height: 260rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.archive-media-video {
+  background: #172924;
+}
+
+.custom-index {
+  flex: none;
+  width: 68rpx;
+  color: var(--gold);
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 26rpx;
+  text-align: center;
 }
 
 .custom-content {
-  margin-top: 20rpx;
+  padding-bottom: 44rpx;
 }
 
-.foot {
-  border-top: 1rpx solid var(--line);
-  padding-top: 48rpx;
+.archive-foot {
+  padding-top: 72rpx;
+  text-align: center;
+}
+
+.foot-rule {
+  width: 42rpx;
+  height: 1rpx;
+  margin: 0 auto 22rpx;
+  background: var(--gold);
 }
 
 .foot-note {
-  font-size: 24rpx;
   color: var(--muted);
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
 }
 
-.ai-entry {
-  margin-top: 32rpx;
-  padding: 28rpx 0;
-  text-align: center;
-  font-size: 26rpx;
+.value-empty {
+  padding: 100rpx 0;
   color: var(--muted);
-  border: 1rpx solid var(--line);
+  font-size: 27rpx;
+  line-height: 1.9;
 }

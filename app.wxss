@@ -1,11 +1,12 @@
 page {
   /* 极浅暖白（近宣纸）、墨色正文、单一茶青强调色、一像素细线 */
-  --paper: #faf8f3;
-  --ink: #33302b;
-  --ink-weak: #6b675f;
-  --muted: #a9a49a;
-  --tea: #6e8272;
-  --line: #e3dfd5;
+  --paper: #fbf8f1;
+  --ink: #12332d;
+  --ink-weak: #5f625e;
+  --muted: #9b978e;
+  --tea: #244d43;
+  --gold: #b38a45;
+  --line: #ddd1bc;
 
   background: var(--paper);
   color: var(--ink);

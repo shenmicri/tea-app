@@ -5,17 +5,54 @@ Page({
   data: {
     id: '',
     name: '',
+    loaded: false,
+    available: false,
+    archivePath: '',
     qr: { ready: false, path: '', hint: '' }
   },
 
   async onLoad(options) {
     const id = options.id || ''
     const archive = await getArchive(id)
-    const qr = await getQrCode(id)
-    this.setData({
-      id,
-      name: archive ? archive.name : '',
-      qr
+    if (!archive || archive.status !== 'published') {
+      this.setData({
+        id,
+        loaded: true,
+        available: false,
+        name: archive ? archive.name : ''
+      })
+      return
+    }
+    try {
+      const qr = await getQrCode(id)
+      this.setData({
+        id,
+        loaded: true,
+        available: true,
+        name: archive.name,
+        archivePath: `/pages/archive/archive?id=${id}`,
+        qr
+      })
+    } catch (error) {
+      this.setData({
+        id,
+        loaded: true,
+        available: true,
+        name: archive.name,
+        archivePath: `/pages/archive/archive?id=${id}`,
+        qr: { ready: false, path: '', hint: '二维码暂不可用，请使用下方测试入口。' }
+      })
+    }
+  },
+
+  onPreviewTap() {
+    wx.navigateTo({ url: this.data.archivePath })
+  },
+
+  onCopyLinkTap() {
+    wx.setClipboardData({
+      data: this.data.archivePath,
+      success: () => wx.showToast({ title: '测试路径已复制', icon: 'success' })
     })
   },
 

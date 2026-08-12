@@ -1,50 +1,100 @@
-<view class="page" wx:if="{{found}}">
+<view class="archive-page" wx:if="{{found}}">
+  <image wx:if="{{coverImage}}" class="hero-image" src="{{coverImage}}" mode="aspectFill" />
 
-  <view class="header">
-    <view class="header-name serif">{{headerName}}</view>
-    <view class="header-category" wx:if="{{headerCategory}}">{{headerCategory}}</view>
-  </view>
-
-  <!-- 区块顺序与字段全部来自 config/schema.js -->
-  <view class="section" wx:for="{{SECTIONS}}" wx:for-item="sec" wx:key="key">
-    <view class="section-title">{{sec.title}}</view>
-
-    <view class="field" wx:for="{{sec.fields}}" wx:for-item="f" wx:key="key">
-      <view class="label">{{f.label}}</view>
-
-      <block wx:if="{{f.type === 'images'}}">
-        <view wx:if="{{sections[sec.key][f.key].length > 0}}">
-          <image
-            class="image"
-            wx:for="{{sections[sec.key][f.key]}}"
-            wx:for-item="src"
-            wx:key="*this"
-            src="{{src}}"
-            mode="widthFix"
-          />
-        </view>
-        <view wx:else class="value-empty">商家未提供</view>
-      </block>
-
-      <block wx:else>
-        <view wx:if="{{sections[sec.key][f.key]}}" class="value">{{sections[sec.key][f.key]}}</view>
-        <view wx:else class="value-empty">商家未提供</view>
-      </block>
+  <view class="archive-sheet {{coverImage ? 'archive-sheet-raised' : ''}}">
+    <view class="identity">
+      <view class="identity-name serif">{{headerName}}</view>
+      <view class="identity-category">{{headerCategory}}</view>
+      <view class="identity-rule"></view>
+      <view class="identity-summary">{{summary}}</view>
+      <view wx:if="{{productCode}}" class="identity-code">产品编号 {{productCode}}</view>
     </view>
-  </view>
 
-  <!-- 自定义区块，排在固定区块之后 -->
-  <view class="section" wx:for="{{customSections}}" wx:key="id">
-    <view class="section-title">{{item.title}}</view>
-    <view class="value custom-content">{{item.content}}</view>
-  </view>
+    <view class="accordions">
+      <view class="archive-section" wx:for="{{displaySections}}" wx:for-item="sec" wx:key="key">
+        <view
+          class="section-head {{sec.empty ? 'section-head-empty' : ''}}"
+          bindtap="onToggleSection"
+          hover-class="{{sec.empty ? 'none' : 'section-head-active'}}"
+          data-key="{{sec.key}}"
+          data-empty="{{sec.empty}}"
+          aria-role="{{sec.empty ? 'text' : 'button'}}"
+          aria-expanded="{{expanded[sec.key]}}"
+        >
+          <view class="section-leading">
+            <view class="section-icon-wrap">
+              <image class="section-icon" src="{{sec.icon}}" mode="aspectFit" />
+            </view>
+            <view class="section-name serif">{{sec.title}}</view>
+          </view>
+          <view wx:if="{{sec.empty}}" class="section-state section-none">无</view>
+          <view wx:else class="section-state">{{expanded[sec.key] ? '收起' : '查看'}}</view>
+        </view>
 
-  <view class="foot">
-    <view class="foot-note">本页内容由商家提供。</view>
-    <view class="ai-entry">AI 助手（开发中）</view>
+        <view wx:if="{{expanded[sec.key] && !sec.empty}}" class="section-content">
+          <view class="archive-field" wx:for="{{sec.fields}}" wx:for-item="field" wx:key="key">
+            <view class="field-heading">
+              <view class="field-icon-wrap">
+                <image class="field-icon" src="{{field.icon}}" mode="aspectFit" />
+              </view>
+              <view class="field-label serif">{{field.label}}</view>
+            </view>
+
+            <view wx:if="{{field.type === 'media'}}" class="media-gallery">
+              <view class="media-card" wx:for="{{field.value}}" wx:for-item="media" wx:key="id">
+                <image
+                  wx:if="{{media.type === 'image'}}"
+                  class="archive-media-image"
+                  src="{{media.path}}"
+                  mode="aspectFill"
+                  bindtap="onPreviewImage"
+                  data-current="{{media.path}}"
+                />
+                <video
+                  wx:else
+                  class="archive-media-video"
+                  src="{{media.path}}"
+                  poster="{{media.poster}}"
+                  controls
+                  show-center-play-btn
+                  object-fit="cover"
+                />
+              </view>
+            </view>
+            <view wx:else class="field-value">{{field.value}}</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="archive-section custom-section" wx:for="{{customSections}}" wx:key="id">
+        <view
+          class="section-head custom-head"
+          bindtap="onToggleSection"
+          hover-class="section-head-active"
+          data-key="{{item.key}}"
+          data-empty="{{false}}"
+          aria-role="button"
+          aria-expanded="{{expanded[item.key]}}"
+        >
+          <view class="section-leading">
+            <view class="custom-index">{{index + 1}}</view>
+            <view class="section-name serif">{{item.title || '自定义内容'}}</view>
+          </view>
+          <view class="section-state">{{expanded[item.key] ? '收起' : '查看'}}</view>
+        </view>
+        <view wx:if="{{expanded[item.key]}}" class="section-content custom-content">
+          <view class="field-value">{{item.content}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="archive-foot">
+      <view class="foot-rule"></view>
+      <view class="foot-note">信息由卖家提供</view>
+    </view>
   </view>
 </view>
 
 <view class="page" wx:elif="{{loaded}}">
-  <view class="value-empty">没有找到这份档案。</view>
+  <view class="value-empty">没有找到这份档案，或档案尚未生成。</view>
 </view>

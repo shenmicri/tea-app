@@ -5,8 +5,9 @@
  * 字段属性：
  *   key      存进 archive.sections[sectionKey][fieldKey]，同一区块内唯一。改 key 属破坏性改动。
  *   label    表单与档案页共用的显示名，随便改。
- *   type     'text' | 'textarea' | 'picker' | 'images' 四选一。
- *   required 目前只有基本信息里的「茶名」为 true。
+ *   type     'text' | 'textarea' | 'picker' | 'cover' | 'media' 五选一。
+ *   required 基本信息里生成档案前必须填写的字段。
+ *   icon     消费者页使用的分类图标。同一页面中的语义图标不可重复。
  *   options  仅 picker 使用。
  *
  * 约定：这里不出现任何 default / placeholder 预填内容。
@@ -23,64 +24,45 @@ export const SECTIONS = [
         key: 'category',
         label: '茶类',
         type: 'picker',
+        required: true,
         options: ['绿茶', '白茶', '黄茶', '青茶（乌龙）', '红茶', '黑茶', '再加工茶', '其他']
       },
-      { key: 'variety', label: '具体品种或小类', type: 'text' },
-      { key: 'summary', label: '一句话介绍', type: 'textarea' },
+      { key: 'coverImage', label: '档案主视觉', type: 'cover', required: true },
+      { key: 'summary', label: '产品简介', type: 'textarea', required: true },
       { key: 'code', label: '产品编号', type: 'text' }
     ]
   },
   {
     key: 'feature',
-    title: '茶的特点、制作与使用',
+    title: '特点、制作与使用',
+    icon: '/assets/icons/tea-archive/sparkle.png',
     fields: [
-      { key: 'appearance', label: '干茶外形', type: 'text' },
-      { key: 'aroma', label: '香气', type: 'text' },
-      { key: 'liquor', label: '汤色', type: 'text' },
-      { key: 'taste', label: '滋味', type: 'text' },
-      { key: 'leaf', label: '叶底', type: 'text' },
-      { key: 'craft', label: '制作工艺', type: 'textarea' },
-      { key: 'brewing', label: '冲泡建议', type: 'textarea' },
-      { key: 'storage', label: '储存方式', type: 'text' },
-      { key: 'caution', label: '特别注意事项', type: 'textarea' },
-      { key: 'images', label: '图片', type: 'images' }
+      { key: 'profile', label: '茶叶特点', type: 'textarea', icon: '/assets/icons/tea-archive/flower-tulip.png' },
+      { key: 'craft', label: '制作工艺', type: 'textarea', icon: '/assets/icons/tea-archive/wind.png' },
+      { key: 'usage', label: '冲泡、储存与注意事项', type: 'textarea', icon: '/assets/icons/tea-archive/tea-bag.png' },
+      { key: 'media', label: '图片与视频', type: 'media', icon: '/assets/icons/tea-archive/camera.png' }
     ]
   },
   {
     key: 'origin',
-    title: '产地、环境与原料',
+    title: '产地与原料',
+    icon: '/assets/icons/tea-archive/mountains.png',
     fields: [
-      { key: 'region', label: '产地', type: 'textarea' },
-      { key: 'garden', label: '茶区／山场／茶园', type: 'text' },
-      { key: 'cultivar', label: '茶树品种', type: 'text' },
-      { key: 'treeAge', label: '树龄', type: 'text' },
-      { key: 'environment', label: '生长环境', type: 'textarea' },
-      { key: 'planting', label: '种植方式', type: 'text' },
-      { key: 'pickingTime', label: '采摘时间或季节', type: 'text' },
-      { key: 'pickingStandard', label: '采摘标准', type: 'text' },
-      { key: 'images', label: '图片', type: 'images' }
-    ]
-  },
-  {
-    key: 'culture',
-    title: '历史、文化与故事',
-    fields: [
-      { key: 'history', label: '历史与文化背景', type: 'textarea' },
-      { key: 'legend', label: '传统故事', type: 'textarea' },
-      { key: 'makerStory', label: '茶园或制茶人故事', type: 'textarea' },
-      { key: 'images', label: '图片', type: 'images' }
+      { key: 'place', label: '产地与生长环境', type: 'textarea', icon: '/assets/icons/tea-archive/map-pin.png' },
+      { key: 'rawMaterial', label: '茶树与原料', type: 'textarea', icon: '/assets/icons/tea-archive/plant.png' },
+      { key: 'harvest', label: '种植与采摘', type: 'textarea', icon: '/assets/icons/tea-archive/scissors.png' },
+      { key: 'media', label: '图片与视频', type: 'media', icon: '/assets/icons/tea-archive/image.png' }
     ]
   },
   {
     key: 'brand',
-    title: '品牌、卖家与茶农信息',
+    title: '品牌与故事',
+    icon: '/assets/icons/tea-archive/book-open.png',
     fields: [
-      { key: 'brandName', label: '品牌或店铺名称', type: 'text' },
-      { key: 'producer', label: '生产者介绍', type: 'textarea' },
-      { key: 'contact', label: '联系方式', type: 'text' },
-      { key: 'address', label: '地址', type: 'text' },
-      { key: 'website', label: '官方网站', type: 'text' },
-      { key: 'images', label: '图片', type: 'images' }
+      { key: 'brandName', label: '品牌或店铺名称', type: 'text', icon: '/assets/icons/tea-archive/storefront.png' },
+      { key: 'story', label: '品牌、茶园或制茶人故事', type: 'textarea', icon: '/assets/icons/tea-archive/scroll.png' },
+      { key: 'contactInfo', label: '联系信息', type: 'textarea', icon: '/assets/icons/tea-archive/address-book.png' },
+      { key: 'media', label: '图片与视频', type: 'media', icon: '/assets/icons/tea-archive/film-slate.png' }
     ]
   }
 ]
@@ -91,7 +73,7 @@ export function createEmptySections() {
   SECTIONS.forEach(section => {
     sections[section.key] = {}
     section.fields.forEach(field => {
-      sections[section.key][field.key] = field.type === 'images' ? [] : ''
+      sections[section.key][field.key] = field.type === 'media' ? [] : ''
     })
   })
   return sections

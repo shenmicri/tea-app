@@ -6,9 +6,9 @@
     "pages/qrcode/qrcode"
   ],
   "window": {
-    "backgroundColor": "#faf8f3",
+    "backgroundColor": "#fbf8f1",
     "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#faf8f3",
+    "navigationBarBackgroundColor": "#fbf8f1",
     "navigationBarTitleText": "茶叶档案",
     "navigationBarTextStyle": "black"
   },

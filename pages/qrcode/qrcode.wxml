@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page" wx:if="{{available}}">
   <view class="name serif">{{name}}</view>
   <view class="id">档案编号 {{id}}</view>
 
@@ -11,5 +11,20 @@
 
   <view class="tip">把这个码印在茶叶包装上，消费者扫码即可打开这份档案。</view>
 
+  <view class="test-entry">
+    <view class="test-title">测试查看入口</view>
+    <text class="test-link" selectable>{{archivePath}}</text>
+    <view class="test-actions">
+      <view class="test-button primary" bindtap="onPreviewTap">直接查看档案</view>
+      <view class="test-button" bindtap="onCopyLinkTap">复制测试路径</view>
+    </view>
+    <view class="test-note">当前档案只保存在这台设备中；复制的是开发者工具可用的页面路径，不是公网链接。</view>
+  </view>
+
   <view class="save save-disabled" bindtap="onSaveTap">保存到相册</view>
+</view>
+
+<view class="page" wx:elif="{{loaded}}">
+  <view class="unavailable serif">这份档案尚未生成</view>
+  <view class="unavailable-note">请先补齐茶名、茶类、产品简介和档案主视觉，再生成档案。</view>
 </view>
