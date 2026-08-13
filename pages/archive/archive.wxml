@@ -90,11 +90,10 @@
 
     <view class="archive-foot">
       <view class="foot-rule"></view>
-      <view class="foot-note">信息由卖家提供</view>
     </view>
   </view>
 </view>
 
 <view class="page" wx:elif="{{loaded}}">
-  <view class="value-empty">没有找到这份档案，或档案尚未生成。</view>
+  <view class="value-empty">{{loadError || '没有找到这份档案，或档案尚未生成。'}}</view>
 </view>

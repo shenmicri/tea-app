@@ -1,7 +1,5 @@
 <view class="page">
-  <view class="draft-note">
-    资料不完整也可以保存草稿；生成档案前需填写全部必填信息。
-  </view>
+
 
   <!-- 四个固定区块，顺序与内容全部来自 config/schema.js -->
   <view class="section" wx:for="{{SECTIONS}}" wx:for-item="sec" wx:key="key">
@@ -17,7 +15,6 @@
         </view>
 
         <view wx:if="{{f.type === 'cover'}}" class="cover-editor">
-          <view class="cover-hint">这里添加的图片会成为消费者打开档案后首先看到的整幅主视觉，并直接显示在茶名上方。它不同于其他介绍图片，请选择最能代表这款茶的图片。</view>
           <view wx:if="{{sections[sec.key][f.key]}}" class="cover-item">
             <image class="cover-preview" src="{{sections[sec.key][f.key]}}" mode="widthFix" />
             <view
@@ -101,10 +98,11 @@
     </view>
   </view>
 
-  <!-- 自定义区块 -->
+  <!-- 自定义项目共同属于一个不展示名称的逻辑大分类；消费者页只显示各项目本身。 -->
   <view class="section">
     <view class="section-head">
-      <text class="section-title">自定义区块</text>
+      <text class="section-title">自定义项目</text>
+      <text class="section-toggle">{{customSections.length}} / 20</text>
     </view>
 
     <view class="section-body">
@@ -112,7 +110,7 @@
         <view class="custom-head">
           <input
             class="input custom-title"
-            placeholder="区块标题"
+            placeholder="项目标题"
             placeholder-class="placeholder"
             value="{{item.title}}"
             data-index="{{index}}"
@@ -129,7 +127,9 @@
         />
       </view>
 
-      <view class="custom-add" bindtap="onCustomAdd">添加新区块</view>
+      <view class="custom-add {{customSections.length >= 20 ? 'custom-add-disabled' : ''}}" bindtap="onCustomAdd">
+        {{customSections.length >= 20 ? '已达到20个项目上限' : '添加新项目'}}
+      </view>
     </view>
   </view>
 
@@ -139,7 +139,7 @@
 <!-- cover-view 保证操作区域位于 input / textarea 等原生输入组件之上；catchtap 阻止触摸穿透。 -->
 <cover-view class="save-bar" catchtap="onSaveBarTap">
   <cover-view class="save-actions">
-    <cover-view class="save save-draft" catchtap="onSaveDraft">{{saving ? '正在保存' : '保存草稿'}}</cover-view>
-    <cover-view class="save save-generate {{canGenerate && !saving ? '' : 'save-disabled'}}" catchtap="onGenerate">生成档案</cover-view>
+    <cover-view class="save save-draft {{initializing || !uploadToken ? 'save-disabled' : ''}}" catchtap="onSaveDraft">{{initializing ? '正在准备' : !uploadToken ? '云端未连接' : saving ? '正在保存' : '保存草稿'}}</cover-view>
+    <cover-view class="save save-generate {{canGenerate && !saving && uploadToken ? '' : 'save-disabled'}}" catchtap="onGenerate">生成档案</cover-view>
   </cover-view>
 </cover-view>

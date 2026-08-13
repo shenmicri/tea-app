@@ -13,121 +13,134 @@ function evaluateStore(schema, wx) {
   const source = fs.readFileSync(path.join(process.cwd(), 'utils/store.js'), 'utf8')
     .replace(/^import .*$/m, '')
     .replace(/export async function /g, 'async function ')
+    .replace(/export const __test__ =/g, 'const __test__ =')
   return new Function(
-    'SECTIONS',
     'createEmptySections',
     'findMissingRequired',
     'wx',
-    `${source}\nreturn { listArchives, getArchive, saveArchive, copyArchive, deleteArchive }`
-  )(schema.SECTIONS, schema.createEmptySections, schema.findMissingRequired, wx)
+    `${source}\nreturn { listArchives, getArchive, getPublicArchive, startArchiveDraft, saveArchive, copyArchive, deleteArchive, __test__ }`
+  )(schema.createEmptySections, schema.findMissingRequired, wx)
 }
 
 function completeSections(schema) {
   const sections = schema.createEmptySections()
   sections.basic.name = '白牡丹'
   sections.basic.category = '白茶'
-  sections.basic.coverImage = 'wxfile://cover.jpg'
+  sections.basic.coverImage = 'cloud://env/covers/cover.jpg'
   sections.basic.summary = '柔雅花香，清甜如初春。'
-  return sections
-}
-
-async function run() {
-  const schema = evaluateSchema()
-  const storage = {}
-  const wx = {
-    getStorageSync(key) {
-      return storage[key]
-    },
-    setStorageSync(key, value) {
-      storage[key] = value
-    }
-  }
-  const store = evaluateStore(schema, wx)
-
-  assert.deepEqual(
-    schema.findMissingRequired(schema.createEmptySections()),
-    ['茶名', '茶类', '档案主视觉', '产品简介']
-  )
-
-  const draft = await store.saveArchive({
-    status: 'draft',
-    sections: schema.createEmptySections()
-  })
-  assert.equal(draft.status, 'draft')
-  assert.equal(storage.tea_archives[0].status, 'draft')
-
-  const rejectedPublish = await store.saveArchive({
-    status: 'published',
-    sections: schema.createEmptySections()
-  })
-  assert.equal(rejectedPublish.status, 'draft')
-  assert.equal(storage.tea_archives.find(item => item.id === rejectedPublish.id).status, 'draft')
-
-  const sections = completeSections(schema)
   sections.feature.profile = '芽叶连枝，银毫披覆。'
   sections.feature.media = [{
     id: 'media-one',
     type: 'image',
-    path: 'wxfile://detail.jpg',
+    path: 'cloud://env/images/detail.jpg',
     poster: '',
     duration: 0
   }]
-  const published = await store.saveArchive({ status: 'published', sections })
-  assert.equal(published.status, 'published')
-  assert.equal((await store.getArchive(published.id)).status, 'published')
+  return sections
+}
 
-  const copied = await store.copyArchive(published.id)
-  assert.equal(copied.status, 'draft')
-  assert.notEqual(copied.id, published.id)
-  assert.equal(copied.sections.basic.name, '白牡丹（副本）')
-  assert.deepEqual(copied.sections.feature.media, published.sections.feature.media)
-  assert.notEqual(copied.sections.feature.media, published.sections.feature.media)
+function response(data) {
+  return Promise.resolve({ result: { ok: true, data } })
+}
 
-  const legacySections = completeSections(schema)
-  delete legacySections.feature.media
-  legacySections.feature.images = ['wxfile://legacy.jpg']
-  storage.tea_archives.push({
-    id: 'legacyv2',
-    name: '白牡丹',
-    schemaVersion: 2,
-    createdAt: 1,
-    updatedAt: 2,
-    sections: legacySections,
-    customSections: []
+async function run() {
+  const schema = evaluateSchema()
+  const calls = []
+  const root = {
+    _id: 'archive1',
+    status: 'published',
+    schema_version: 3,
+    tea_name: '白牡丹',
+    tea_type: '白茶',
+    cover_image_file_id: 'cloud://env/covers/cover.jpg',
+    product_summary: '柔雅花香，清甜如初春。',
+    tea_profile: '芽叶连枝，银毫披覆。',
+    created_at: new Date('2026-08-12T10:00:00Z'),
+    updated_at: new Date('2026-08-12T11:00:00Z')
+  }
+  const media = [{
+    media_id: 'media-one',
+    section_key: 'feature',
+    media_type: 'image',
+    file_id: 'cloud://env/images/detail.jpg',
+    poster_file_id: '',
+    duration_seconds: 0,
+    sort_order: 1
+  }]
+  const custom = [{
+    custom_item_id: 'custom-one',
+    title: '获奖记录',
+    content: '2026年春季茶会金奖',
+    sort_order: 1
+  }]
+
+  const wx = {
+    cloud: {
+      callFunction(options) {
+        calls.push(options)
+        switch (options.data.action) {
+          case 'listMine':
+            return response([root])
+          case 'getForEdit':
+          case 'getPublicArchive':
+          case 'save':
+          case 'copy':
+            return response({ root, media, custom_items: custom })
+          case 'startDraft':
+            return response({ id: 'reserved1', upload_token: 'archive-upload-token', revision: 0 })
+          case 'delete':
+            return response({ id: options.data.id })
+          default:
+            return Promise.resolve({ result: { ok: false, error: { code: 'UNKNOWN', message: 'bad action' } } })
+        }
+      }
+    }
+  }
+  const store = evaluateStore(schema, wx)
+
+  const composite = store.__test__.archiveToComposite({
+    status: 'published',
+    sections: completeSections(schema),
+    customSections: [{ id: 'custom-one', title: '获奖记录', content: '2026年春季茶会金奖' }]
   })
-  const migrated = await store.getArchive('legacyv2')
-  assert.equal(migrated.status, 'published')
-  assert.deepEqual(migrated.sections.feature.media.map(item => item.path), ['wxfile://legacy.jpg'])
+  assert.equal(composite.status, 'published')
+  assert.equal(composite.root.tea_name, '白牡丹')
+  assert.equal(composite.media[0].section_key, 'feature')
+  assert.equal(composite.media[0].file_id, 'cloud://env/images/detail.jpg')
+  assert.equal(composite.custom_items.length, 1)
 
-  const mixedSections = completeSections(schema)
-  mixedSections.origin.media = [{ id: 'new-one', type: 'image', path: 'wxfile://new.jpg' }]
-  mixedSections.origin.images = ['wxfile://old.jpg', 'wxfile://new.jpg']
-  storage.tea_archives.push({
-    id: 'mixedv2',
-    name: '白牡丹',
-    schemaVersion: 2,
-    createdAt: 1,
-    updatedAt: 2,
-    sections: mixedSections,
-    customSections: []
-  })
-  const mixed = await store.getArchive('mixedv2')
+  const mapped = store.__test__.compositeToArchive({ root, media, custom_items: custom })
+  assert.equal(mapped.id, 'archive1')
+  assert.equal(mapped.sections.basic.name, '白牡丹')
+  assert.equal(mapped.sections.basic.coverImageFileId, 'cloud://env/covers/cover.jpg')
+  assert.equal(mapped.sections.feature.media[0].path, 'cloud://env/images/detail.jpg')
+  assert.equal(mapped.sections.feature.media[0].fileId, 'cloud://env/images/detail.jpg')
+  assert.equal(mapped.customSections[0].title, '获奖记录')
+
+  assert.equal((await store.listArchives()).length, 1)
+  assert.equal((await store.getArchive('archive1')).id, 'archive1')
+  assert.equal((await store.getPublicArchive('archive1')).status, 'published')
+  assert.equal((await store.startArchiveDraft()).id, 'reserved1')
+  assert.equal((await store.saveArchive({ status: 'published', sections: completeSections(schema), customSections: [] })).id, 'archive1')
+  assert.equal((await store.copyArchive('archive1')).id, 'archive1')
+  assert.equal((await store.deleteArchive('archive1')).id, 'archive1')
+
   assert.deepEqual(
-    mixed.sections.origin.media.map(item => item.path),
-    ['wxfile://new.jpg', 'wxfile://old.jpg']
+    calls.map(call => call.data.action),
+    ['listMine', 'getForEdit', 'getPublicArchive', 'startDraft', 'save', 'copy', 'delete']
   )
 
-  storage.tea_archives.push({
-    id: 'unknown-status',
-    name: '白牡丹',
-    schemaVersion: 3,
-    status: 'publised',
-    createdAt: 1,
-    updatedAt: 2,
-    sections: completeSections(schema),
+  assert.throws(() => store.__test__.archiveToComposite({
+    status: 'draft',
+    sections: schema.createEmptySections(),
+    customSections: Array.from({ length: 21 }, (_, index) => ({ id: `c${index}`, title: '', content: '' }))
+  }), /最多只能添加20个/)
+
+  assert.throws(() => store.__test__.archiveToComposite({
+    status: 'published',
+    sections: schema.createEmptySections(),
     customSections: []
-  })
-  assert.equal((await store.getArchive('unknown-status')).status, 'draft')
+  }), /请先补齐/)
 
   const iconPaths = schema.SECTIONS.flatMap(section => [
     section.icon,
@@ -138,7 +151,7 @@ async function run() {
     assert.equal(fs.existsSync(path.join(process.cwd(), iconPath.replace(/^\//, ''))), true)
   })
 
-  console.log(`passed: store, migration, publishing, copy, and ${iconPaths.length} unique icons`)
+  console.log(`passed: cloud store mappings, seven service actions, max-20 rule, and ${iconPaths.length} unique icons`)
 }
 
 run().catch(error => {

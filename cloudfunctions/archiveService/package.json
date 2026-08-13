@@ -1,0 +1,9 @@
+{
+  "name": "archive-service",
+  "version": "1.0.0",
+  "description": "Tea archive composite CRUD service",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "4.0.2"
+  }
+}

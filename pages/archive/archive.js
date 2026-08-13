@@ -1,5 +1,5 @@
 import { SECTIONS } from '../../config/schema'
-import { getArchive } from '../../utils/store'
+import { getPublicArchive } from '../../utils/store'
 
 function hasValue(field, value) {
   if (field.type === 'media') return Array.isArray(value) && value.length > 0
@@ -35,6 +35,7 @@ Page({
     SECTIONS,
     loaded: false,
     found: false,
+    loadError: '',
     headerName: '',
     headerCategory: '',
     coverImage: '',
@@ -46,27 +47,36 @@ Page({
   },
 
   async onLoad(options) {
-    const archive = await getArchive(getArchiveId(options))
-    if (!archive || archive.status !== 'published') {
-      this.setData({ loaded: true, found: false })
-      return
+    try {
+      const archive = await getPublicArchive(getArchiveId(options))
+      if (!archive || archive.status !== 'published') {
+        this.setData({ loaded: true, found: false })
+        return
+      }
+      this.setData({
+        loaded: true,
+        found: true,
+        loadError: '',
+        // 顶部标题是本页唯一直接引用具体字段的地方，其余全部按 schema 渲染。
+        headerName: archive.sections.basic.name,
+        headerCategory: archive.sections.basic.category,
+        coverImage: archive.sections.basic.coverImage,
+        summary: archive.sections.basic.summary,
+        productCode: archive.sections.basic.code,
+        displaySections: getDisplaySections(archive.sections),
+        // 内容为空的自定义项目整项不显示；不显示其共同所属的逻辑大分类。
+        customSections: archive.customSections
+          .filter(item => item.content && item.content.trim())
+          .map(item => ({ ...item, key: `custom-${item.id}` }))
+      })
+      wx.setNavigationBarTitle({ title: archive.name || '茶叶档案' })
+    } catch (error) {
+      this.setData({
+        loaded: true,
+        found: false,
+        loadError: error.message || '档案加载失败，请稍后重试'
+      })
     }
-    this.setData({
-      loaded: true,
-      found: true,
-      // 顶部标题是本页唯一直接引用具体字段的地方，其余全部按 schema 渲染。
-      headerName: archive.sections.basic.name,
-      headerCategory: archive.sections.basic.category,
-      coverImage: archive.sections.basic.coverImage,
-      summary: archive.sections.basic.summary,
-      productCode: archive.sections.basic.code,
-      displaySections: getDisplaySections(archive.sections),
-      // 内容为空的自定义区块整块不显示
-      customSections: archive.customSections
-        .filter(item => item.content && item.content.trim())
-        .map(item => ({ ...item, key: `custom-${item.id}` }))
-    })
-    wx.setNavigationBarTitle({ title: archive.name || '茶叶档案' })
   },
 
   onToggleSection(e) {

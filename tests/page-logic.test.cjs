@@ -54,6 +54,8 @@ function completeSections(schema) {
 async function flush() {
   await new Promise(resolve => setImmediate(resolve))
   await new Promise(resolve => setImmediate(resolve))
+  await new Promise(resolve => setImmediate(resolve))
+  await new Promise(resolve => setImmediate(resolve))
 }
 
 async function runEditTests(schema) {
@@ -68,10 +70,20 @@ async function runEditTests(schema) {
     redirectTo(options) { calls.redirect.push(options) },
     showActionSheet(options) { options.success({ tapIndex: 0 }) },
     chooseMedia(options) {
-      options.success({ tempFiles: [{ tempFilePath: 'tmp-image.jpg' }] })
+      return options.success({ tempFiles: [{ tempFilePath: 'tmp-image.jpg' }] })
     },
-    saveFile(options) {
-      options.success({ savedFilePath: `saved://${options.tempFilePath}` })
+    compressImage(options) {
+      options.success({ tempFilePath: options.src })
+    },
+    getImageInfo(options) {
+      options.success({ width: 1200, height: 900, type: 'jpeg' })
+    },
+    cloud: {
+      uploadFile(options) {
+        const result = { fileID: `cloud://test/${options.filePath}` }
+        options.success(result)
+        return Promise.resolve(result)
+      }
     }
   }
   async function saveArchive(data) {
@@ -79,6 +91,7 @@ async function runEditTests(schema) {
     return {
       id: data.id || 'archive01',
       createdAt: data.createdAt || 123,
+      revision: (data.revision || 0) + 1,
       status: data.status,
       sections: data.sections,
       customSections: data.customSections
@@ -86,10 +99,21 @@ async function runEditTests(schema) {
   }
   const definition = evaluatePage(
     'pages/edit/edit.js',
-    ['SECTIONS', 'createEmptySections', 'findMissingRequired', 'getArchive', 'saveArchive', 'wx'],
-    [schema.SECTIONS, schema.createEmptySections, schema.findMissingRequired, async () => null, saveArchive, wx]
+    ['SECTIONS', 'createEmptySections', 'findMissingRequired', 'getArchive', 'saveArchive', 'startArchiveDraft', 'wx'],
+    [
+      schema.SECTIONS,
+      schema.createEmptySections,
+      schema.findMissingRequired,
+      async () => null,
+      saveArchive,
+      async () => ({ id: 'archive01', revision: 0, uploadToken: 'archive-upload-token' }),
+      wx
+    ]
   )
   const page = instantiate(definition)
+  page.data.id = 'archive01'
+  page.data.initializing = false
+  page.data.uploadToken = 'archive-upload-token'
 
   await page.onSaveDraft()
   assert.equal(saves.at(-1).status, 'draft')
@@ -107,15 +131,45 @@ async function runEditTests(schema) {
   assert.equal(saves.at(-1).status, 'published')
   assert.equal(calls.redirect.at(-1).url, '/pages/qrcode/qrcode?id=archive01')
 
-  page.onCoverAdd({ currentTarget: { dataset: { section: 'basic', field: 'coverImage' } } })
-  await flush()
-  assert.equal(page.data.sections.basic.coverImage, 'saved://tmp-image.jpg')
+  const redirectsBeforeSecurityFailure = calls.redirect.length
+  const originalSaveArchive = page.persist
+  page.persist = async () => {
+    const error = new Error('档案文字未通过安全检测，请检查并修改后重试')
+    error.code = 'TEXT_CONTENT_RISKY'
+    throw error
+  }
+  await page.onGenerate()
+  assert.equal(calls.redirect.length, redirectsBeforeSecurityFailure)
+  assert.equal(calls.modal.at(-1).title, '内容未通过安全检测')
+  assert.equal(page.data.saving, false)
+  page.persist = originalSaveArchive
 
-  page.onMediaAdd({ currentTarget: { dataset: { section: 'feature', field: 'media' } } })
+  await page.onCoverAdd({ currentTarget: { dataset: { section: 'basic', field: 'coverImage' } } })
+  await flush()
+  assert.equal(page.data.sections.basic.coverImage, 'tmp-image.jpg')
+  assert.equal(page.data.sections.basic.coverImageFileId, 'cloud://test/tmp-image.jpg')
+
+  await page.onMediaAdd({ currentTarget: { dataset: { section: 'feature', field: 'media' } } })
   await flush()
   assert.equal(page.data.sections.feature.media.length, 1)
   assert.equal(page.data.sections.feature.media[0].type, 'image')
-  assert.equal(page.data.sections.feature.media[0].path, 'saved://tmp-image.jpg')
+  assert.equal(page.data.sections.feature.media[0].path, 'tmp-image.jpg')
+  assert.equal(page.data.sections.feature.media[0].fileId, 'cloud://test/tmp-image.jpg')
+
+  page.data.customSections = Array.from({ length: 20 }, (_, index) => ({
+    id: `custom-${index}`,
+    title: '',
+    content: ''
+  }))
+  page.onCustomAdd()
+  assert.equal(page.data.customSections.length, 20)
+  assert.equal(calls.toast.at(-1).title, '最多只能添加20个自定义项目')
+
+  page.data.customSections = [{ id: 'custom-invalid', title: '', content: '有内容但没有标题' }]
+  const savesBeforeInvalidCustom = saves.length
+  await page.onGenerate()
+  assert.equal(saves.length, savesBeforeInvalidCustom)
+  assert.equal(calls.modal.at(-1).content, '有内容的自定义项目需要填写标题。当前内容仍可保存为草稿。')
 }
 
 async function runArchiveTests(schema) {
@@ -144,7 +198,7 @@ async function runArchiveTests(schema) {
   }
   const definition = evaluatePage(
     'pages/archive/archive.js',
-    ['SECTIONS', 'getArchive', 'wx'],
+    ['SECTIONS', 'getPublicArchive', 'wx'],
     [schema.SECTIONS, async () => archive, wx]
   )
   const page = instantiate(definition)

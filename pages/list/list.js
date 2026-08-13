@@ -10,7 +10,8 @@ function formatTime(ts) {
 Page({
   data: {
     archives: [],
-    loaded: false
+    loaded: false,
+    loadError: ''
   },
 
   onShow() {
@@ -18,18 +19,39 @@ Page({
   },
 
   async load() {
-    const archives = await listArchives()
-    this.setData({
-      loaded: true,
-      archives: archives.map(item => ({
-        id: item.id,
-        name: item.name || '未命名',
-        category: item.sections.basic.category || '',
-        published: item.status === 'published',
-        statusText: item.status === 'published' ? '已生成' : '草稿',
-        updatedText: formatTime(item.updatedAt)
-      }))
-    })
+    this.setData({ loadError: '' })
+    try {
+      const archives = await listArchives()
+      this.setData({
+        loaded: true,
+        archives: archives.map(item => {
+          const published = item.status === 'published'
+          const publiclyAvailable = item.publicStatus === 'published' || published
+          return {
+            id: item.id,
+            name: item.name || '未命名',
+            category: item.sections.basic.category || '',
+            published,
+            publiclyAvailable,
+            statusText: published
+              ? '已生成'
+              : publiclyAvailable ? '草稿（线上版保留）' : '草稿',
+            updatedText: formatTime(item.updatedAt)
+          }
+        })
+      })
+    } catch (error) {
+      this.setData({
+        loaded: true,
+        archives: [],
+        loadError: error.message || '云端档案加载失败'
+      })
+    }
+  },
+
+  onRetryTap() {
+    this.setData({ loaded: false })
+    this.load()
   },
 
   onItemTap(e) {

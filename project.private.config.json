@@ -15,11 +15,18 @@
     "miniprogram": {
       "list": [
         {
-          "name": "pages/archive/archive",
-          "pathName": "pages/archive/archive",
+          "name": "/pages/archive/archive?id=wmkfzp6d",
+          "pathName": "/pages/archive/archive?id=wmkfzp6d",
           "query": "",
           "scene": null,
           "launchMode": "default"
+        },
+        {
+          "name": "pages/archive/archive",
+          "pathName": "pages/archive/archive",
+          "query": "",
+          "launchMode": "default",
+          "scene": null
         }
       ]
     }

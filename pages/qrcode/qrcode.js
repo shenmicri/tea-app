@@ -1,4 +1,4 @@
-import { getArchive } from '../../utils/store'
+import { getPublicArchive } from '../../utils/store'
 import { getQrCode } from '../../utils/qrcode'
 
 Page({
@@ -7,24 +7,30 @@ Page({
     name: '',
     loaded: false,
     available: false,
+    errorMessage: '',
     archivePath: '',
     qr: { ready: false, path: '', hint: '' }
   },
 
   async onLoad(options) {
     const id = options.id || ''
-    const archive = await getArchive(id)
-    if (!archive || archive.status !== 'published') {
-      this.setData({
-        id,
-        loaded: true,
-        available: false,
-        name: archive ? archive.name : ''
-      })
-      return
-    }
     try {
-      const qr = await getQrCode(id)
+      const archive = await getPublicArchive(id)
+      if (!archive || archive.status !== 'published') {
+        this.setData({
+          id,
+          loaded: true,
+          available: false,
+          name: archive ? archive.name : ''
+        })
+        return
+      }
+      let qr
+      try {
+        qr = await getQrCode(id)
+      } catch (error) {
+        qr = { ready: false, path: '', hint: '二维码暂不可用，请稍后重试。' }
+      }
       this.setData({
         id,
         loaded: true,
@@ -37,23 +43,15 @@ Page({
       this.setData({
         id,
         loaded: true,
-        available: true,
-        name: archive.name,
-        archivePath: `/pages/archive/archive?id=${id}`,
-        qr: { ready: false, path: '', hint: '二维码暂不可用，请使用下方测试入口。' }
+        available: false,
+        name: '',
+        errorMessage: error.message || '云端档案加载失败'
       })
     }
   },
 
   onPreviewTap() {
     wx.navigateTo({ url: this.data.archivePath })
-  },
-
-  onCopyLinkTap() {
-    wx.setClipboardData({
-      data: this.data.archivePath,
-      success: () => wx.showToast({ title: '测试路径已复制', icon: 'success' })
-    })
   },
 
   onSaveTap() {

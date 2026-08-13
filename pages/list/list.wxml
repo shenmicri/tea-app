@@ -1,7 +1,6 @@
 <view class="page">
   <view class="head">
     <view class="head-title serif">我的茶叶档案</view>
-    <view class="head-sub">档案内容全部由商家提供</view>
   </view>
 
   <view class="hairline"></view>
@@ -19,15 +18,20 @@
       </view>
       <view class="row-actions">
         <view
-          class="row-action {{item.published ? '' : 'row-action-disabled'}}"
+          class="row-action {{item.publiclyAvailable ? '' : 'row-action-disabled'}}"
           bindtap="onQrcodeTap"
           data-id="{{item.id}}"
-          data-published="{{item.published}}"
-        >{{item.published ? '二维码／链接' : '待生成'}}</view>
+          data-published="{{item.publiclyAvailable}}"
+        >{{item.publiclyAvailable ? '二维码／链接' : '待生成'}}</view>
         <view class="row-action" bindtap="onCopyTap" data-id="{{item.id}}" data-name="{{item.name}}">复制</view>
       </view>
     </view>
   </block>
+
+  <view class="empty" wx:elif="{{loaded && loadError}}">
+    <view>{{loadError}}</view>
+    <view class="retry" bindtap="onRetryTap">重新加载</view>
+  </view>
 
   <view class="empty" wx:elif="{{loaded}}">
     还没有茶叶档案，点右下角开始创建第一份。

@@ -143,6 +143,10 @@
   color: var(--tea);
 }
 
+.custom-add-disabled {
+  color: var(--muted);
+}
+
 .bottom-space {
   height: 180rpx;
 }

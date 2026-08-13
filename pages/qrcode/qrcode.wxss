@@ -1,12 +1,7 @@
 .name {
   font-size: 44rpx;
   letter-spacing: 4rpx;
-}
-
-.id {
-  margin: 10rpx 0 40rpx;
-  font-size: 24rpx;
-  color: var(--muted);
+  margin-bottom: 40rpx;
 }
 
 .qr-area {
@@ -34,61 +29,15 @@
   background: #f0ece2;
 }
 
-.tip {
-  font-size: 26rpx;
-  color: var(--ink-weak);
-  line-height: 2;
-}
-
-.test-entry {
+.preview-button {
   margin-top: 48rpx;
-  padding-top: 40rpx;
-  border-top: 1rpx solid var(--line);
-}
-
-.test-title {
-  font-size: 28rpx;
-  color: var(--ink);
-}
-
-.test-link {
-  display: block;
-  margin-top: 16rpx;
-  padding: 20rpx;
-  font-size: 24rpx;
-  line-height: 1.6;
-  word-break: break-all;
-  background: #f0ece2;
-}
-
-.test-actions {
-  display: flex;
-  margin-top: 24rpx;
-}
-
-.test-button {
-  flex: 1;
-  padding: 20rpx 12rpx;
+  height: 88rpx;
+  line-height: 88rpx;
   text-align: center;
-  font-size: 26rpx;
-  color: var(--tea);
-  border: 1rpx solid var(--tea);
-}
-
-.test-button + .test-button {
-  margin-left: 20rpx;
-}
-
-.test-button.primary {
+  font-size: 30rpx;
+  letter-spacing: 2rpx;
   color: var(--paper);
   background: var(--tea);
-}
-
-.test-note {
-  margin-top: 20rpx;
-  font-size: 22rpx;
-  color: var(--muted);
-  line-height: 1.7;
 }
 
 .save {
