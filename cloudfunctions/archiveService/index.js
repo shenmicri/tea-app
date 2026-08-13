@@ -20,6 +20,8 @@ const TEXT_CHECK_MAX_CHARACTERS = 40000
 const IMAGE_CHECK_MAX_BYTES = 1024 * 1024
 const IMAGE_CHECK_CONCURRENCY = 3
 const MAX_PUBLISH_IMAGES = 30
+const QR_CODE_VERSION = 1
+const QR_CODE_PAGE = 'pages/archive/archive'
 const TEXT_FIELDS = [
   ['tea_name', '茶名'],
   ['tea_type', '茶类'],
@@ -368,12 +370,7 @@ function publishImageFileIds(root, media) {
   media.forEach(item => {
     if (item.media_type === 'image') {
       fileIds.push(item.file_id)
-      return
     }
-    throw serviceError(
-      'VIDEO_CHECK_UNSUPPORTED',
-      '当前安全检测方式无法识别视频正文；视频可以保存为草稿，但需要删除视频后才能生成档案'
-    )
   })
   const uniqueFileIds = Array.from(new Set(fileIds.filter(Boolean)))
   if (uniqueFileIds.length > MAX_PUBLISH_IMAGES) {
@@ -599,8 +596,12 @@ async function preparePublishedContent(root, media, customItems, openid, archive
     },
     media: media.map(item => ({
       ...item,
-      file_id: publishedFileIds.get(item.file_id) || item.file_id,
-      poster_file_id: ''
+      // 图片使用已检测且不可由客户端覆盖的发布副本；视频按产品要求直接发布，
+      // 不交给 imgSecCheck，视频文件与其展示封面均保留原始 fileID。
+      file_id: item.media_type === 'image'
+        ? (publishedFileIds.get(item.file_id) || item.file_id)
+        : item.file_id,
+      poster_file_id: item.media_type === 'video' ? item.poster_file_id : ''
     }))
   }
 }
@@ -1107,6 +1108,98 @@ async function getPublicComposite(id) {
   return resolvePublicFileUrls(composite)
 }
 
+function qrCodePayload(fileId, buffer, mimeType = 'image/jpeg') {
+  if (!fileId || !Buffer.isBuffer(buffer) || !buffer.length) return null
+  return {
+    file_id: fileId,
+    file_base64: buffer.toString('base64'),
+    mime_type: mimeType === 'image/png' ? 'image/png' : 'image/jpeg'
+  }
+}
+
+async function downloadQrCode(fileId, mimeType) {
+  if (!fileId) return null
+  try {
+    const result = await cloud.downloadFile({ fileID: fileId })
+    return qrCodePayload(fileId, result && result.fileContent, mimeType)
+  } catch (error) {
+    // 缓存文件被手工删除或暂时不可读时重新生成，不让旧缓存永久阻断小程序码。
+    return null
+  }
+}
+
+async function generateArchiveQrCode(id, openid) {
+  const archive = await getOwnedArchive(id, openid)
+  const hasPublicSnapshot = (
+    (archive.public_status === 'published' && archive.published_snapshot) ||
+    archive.status === 'published'
+  )
+  if (!hasPublicSnapshot) {
+    throw serviceError('QR_ARCHIVE_NOT_PUBLISHED', '请先生成档案，再创建小程序码')
+  }
+
+  const cachedFileId = cleanText(archive.qr_code_file_id)
+  if (cachedFileId && Number(archive.qr_code_version) === QR_CODE_VERSION) {
+    const cached = await downloadQrCode(cachedFileId, cleanText(archive.qr_code_mime_type))
+    if (cached) return cached
+  }
+
+  let codeResult
+  try {
+    codeResult = await cloud.openapi.wxacode.getUnlimited({
+      scene: id,
+      page: QR_CODE_PAGE,
+      width: 430,
+      autoColor: false,
+      lineColor: { r: 31, g: 86, b: 71 },
+      isHyaline: false,
+      // 页面路径固定在代码内；关闭路径预检后，首次正式发布前也能完成联调。
+      // 小程序码扫码时始终进入正式版，因此正式使用前仍必须发布包含该页面的版本。
+      checkPath: false,
+      envVersion: 'release'
+    })
+  } catch (error) {
+    const code = numericSecurityCode(error)
+    if (code === 41030) {
+      throw serviceError('QR_PAGE_NOT_RELEASED', '正式版尚未包含档案页面，请先发布小程序后再重试')
+    }
+    throw serviceError('QR_CODE_GENERATION_FAILED', '小程序码生成失败，请稍后重试')
+  }
+
+  const buffer = codeResult && codeResult.buffer
+  if (!Buffer.isBuffer(buffer) || !buffer.length) {
+    throw serviceError('QR_CODE_GENERATION_FAILED', '微信未返回有效的小程序码，请稍后重试')
+  }
+  const mimeType = cleanText(codeResult.contentType).toLowerCase() === 'image/png'
+    ? 'image/png'
+    : 'image/jpeg'
+  const extension = mimeType === 'image/png' ? 'png' : 'jpg'
+
+  let uploadResult
+  try {
+    uploadResult = await cloud.uploadFile({
+      cloudPath: `tea-archives-published/codes/${id}/code-v${QR_CODE_VERSION}.${extension}`,
+      fileContent: buffer
+    })
+  } catch (error) {
+    throw serviceError('QR_CODE_UPLOAD_FAILED', '小程序码保存失败，请稍后重试')
+  }
+  const fileId = cleanText(uploadResult && (uploadResult.fileID || uploadResult.fileId))
+  if (!fileId) throw serviceError('QR_CODE_UPLOAD_FAILED', '小程序码保存失败，请稍后重试')
+
+  await archives.doc(id).update({
+    data: {
+      qr_code_file_id: fileId,
+      qr_code_version: QR_CODE_VERSION,
+      qr_code_mime_type: mimeType,
+      qr_code_updated_at: db.serverDate()
+    }
+  })
+  const payload = qrCodePayload(fileId, buffer, mimeType)
+  if (!payload) throw serviceError('QR_CODE_GENERATION_FAILED', '微信未返回有效的小程序码，请稍后重试')
+  return payload
+}
+
 async function getTempUrlMap(composite) {
   const fileIds = new Set()
   const cover = composite.root.cover_image_file_id
@@ -1235,6 +1328,7 @@ async function deleteComposite(id, openid) {
     ? publishedRows(await getAllByArchive(mediaCollection, id), publishedVersion)
     : []
   const publishedFileIds = publishedFileIdsFromVersion(publicSnapshot, publishedMediaRows)
+  const qrCodeFileId = cleanText(existing.qr_code_file_id)
   // 先进入 deleting 状态，立即关闭公开读取；保留发布指针，便于删除失败后重试清理文件。
   await archives.doc(id).update({
     data: {
@@ -1245,7 +1339,7 @@ async function deleteComposite(id, openid) {
     }
   })
   // 先清理只属于当前档案的发布副本；失败时保留主记录与指针，下一次删除可继续重试。
-  await removeCloudFiles(publishedFileIds)
+  await removeCloudFiles(publishedFileIds.concat(qrCodeFileId ? [qrCodeFileId] : []))
   await removeAllByArchive(mediaCollection, id)
   await removeAllByArchive(customCollection, id)
   await archives.doc(id).remove()
@@ -1273,6 +1367,9 @@ exports.main = async (event = {}) => {
         break
       case 'getPublicArchive':
         data = await getPublicComposite(cleanText(event.id))
+        break
+      case 'getQrCode':
+        data = await generateArchiveQrCode(cleanText(event.id), OPENID)
         break
       case 'save':
         data = await saveComposite(event, OPENID)

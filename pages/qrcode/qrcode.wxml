@@ -10,7 +10,9 @@
 
   <view class="preview-button" bindtap="onPreviewTap">直接查看档案</view>
 
-  <view class="save save-disabled" bindtap="onSaveTap">保存到相册</view>
+  <view class="save {{qr.ready && !savingImage ? '' : 'save-disabled'}}" bindtap="onSaveTap">
+    {{savingImage ? '正在保存' : '保存到相册'}}
+  </view>
 </view>
 
 <view class="page" wx:elif="{{loaded}}">

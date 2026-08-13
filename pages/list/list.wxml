@@ -22,7 +22,7 @@
           bindtap="onQrcodeTap"
           data-id="{{item.id}}"
           data-published="{{item.publiclyAvailable}}"
-        >{{item.publiclyAvailable ? '二维码／链接' : '待生成'}}</view>
+        >{{item.publiclyAvailable ? '小程序码' : '待生成'}}</view>
         <view class="row-action" bindtap="onCopyTap" data-id="{{item.id}}" data-name="{{item.name}}">复制</view>
       </view>
     </view>

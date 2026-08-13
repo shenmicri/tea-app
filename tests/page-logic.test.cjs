@@ -219,11 +219,61 @@ async function runArchiveTests(schema) {
   assert.equal(previewCalls.at(-1).current, '/tests/fixtures/white-peony-leaves.jpg')
 }
 
+async function runQrCodeTests() {
+  const calls = { navigate: [], saved: [], toast: [] }
+  const wx = {
+    navigateTo(options) { calls.navigate.push(options) },
+    showLoading() {},
+    hideLoading() {},
+    showToast(options) { calls.toast.push(options) },
+    showModal() {},
+    saveImageToPhotosAlbum(options) {
+      calls.saved.push(options.filePath)
+      options.success()
+    }
+  }
+  let qrCalls = 0
+  const getQrCode = async id => {
+    qrCalls += 1
+    return {
+      ready: true,
+      path: `/user/archive-code-${id}.jpg`,
+      fileId: `cloud://test/codes/${id}.jpg`,
+      id,
+      hint: ''
+    }
+  }
+  const definition = evaluatePage(
+    'pages/qrcode/qrcode.js',
+    ['getPublicArchive', 'getQrCode', 'wx'],
+    [
+      async id => ({ id, name: '白牡丹', status: 'published' }),
+      getQrCode,
+      wx
+    ]
+  )
+  const page = instantiate(definition)
+  await page.onLoad({ id: 'archive01' })
+  assert.equal(page.data.available, true)
+  assert.equal(page.data.qr.ready, true)
+  assert.equal(qrCalls, 1)
+
+  page.onPreviewTap()
+  assert.equal(calls.navigate.at(-1).url, '/pages/archive/archive?id=archive01')
+
+  await page.onSaveTap()
+  assert.equal(qrCalls, 1, 'saving must reuse the local qr-code image')
+  assert.equal(calls.saved.at(-1), '/user/archive-code-archive01.jpg')
+  assert.equal(calls.toast.at(-1).title, '已保存到相册')
+  assert.equal(page.data.savingImage, false)
+}
+
 async function run() {
   const schema = evaluateSchema()
   await runEditTests(schema)
   await runArchiveTests(schema)
-  console.log('passed: editor draft/generate/media and archive folding/empty/preview behavior')
+  await runQrCodeTests()
+  console.log('passed: editor/archive behavior and qr-code display/save flow')
 }
 
 run().catch(error => {

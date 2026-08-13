@@ -9,7 +9,8 @@ Page({
     available: false,
     errorMessage: '',
     archivePath: '',
-    qr: { ready: false, path: '', hint: '' }
+    qr: { ready: false, path: '', hint: '' },
+    savingImage: false
   },
 
   async onLoad(options) {
@@ -29,7 +30,12 @@ Page({
       try {
         qr = await getQrCode(id)
       } catch (error) {
-        qr = { ready: false, path: '', hint: '二维码暂不可用，请稍后重试。' }
+        qr = {
+          ready: false,
+          path: '',
+          fileId: '',
+          hint: error.message || '小程序码暂不可用，请稍后重试。'
+        }
       }
       this.setData({
         id,
@@ -54,10 +60,37 @@ Page({
     wx.navigateTo({ url: this.data.archivePath })
   },
 
-  onSaveTap() {
-    // 占位阶段不可用。TODO: 接上真码后改为 wx.saveImageToPhotosAlbum({ filePath: this.data.qr.path })
+  async onSaveTap() {
+    if (this.data.savingImage) return
     if (!this.data.qr.ready) {
-      wx.showToast({ title: '二维码尚未接入', icon: 'none' })
+      wx.showToast({ title: '小程序码暂不可用', icon: 'none' })
+      return
+    }
+    this.setData({ savingImage: true })
+    wx.showLoading({ title: '正在保存' })
+    try {
+      await new Promise((resolve, reject) => wx.saveImageToPhotosAlbum({
+        filePath: this.data.qr.path,
+        success: resolve,
+        fail: reject
+      }))
+      wx.hideLoading()
+      wx.showToast({ title: '已保存到相册', icon: 'success' })
+    } catch (error) {
+      wx.hideLoading()
+      const denied = error && /auth deny|authorize|permission|writePhotosAlbum/i.test(error.errMsg || error.message || '')
+      if (denied && typeof wx.openSetting === 'function') {
+        wx.showModal({
+          title: '需要相册权限',
+          content: '请在设置中允许保存到相册，然后重新点击保存。',
+          confirmText: '去设置',
+          success: result => { if (result.confirm) wx.openSetting() }
+        })
+      } else {
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' })
+      }
+    } finally {
+      this.setData({ savingImage: false })
     }
   }
 })

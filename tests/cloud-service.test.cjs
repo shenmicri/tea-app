@@ -27,7 +27,8 @@ function createCloudMock() {
     mediaAsync: [],
     download: [],
     upload: [],
-    delete: []
+    delete: [],
+    qr: []
   }
   let msgSecCheckHandler = async () => ({
     errCode: 0,
@@ -140,6 +141,17 @@ function createCloudMock() {
         async mediaCheckAsync(options) {
           securityCalls.mediaAsync.push(clone(options))
           throw new Error('security.mediaCheckAsync must not be used')
+        }
+      },
+      wxacode: {
+        async getUnlimited(options) {
+          securityCalls.qr.push(clone(options))
+          return {
+            errCode: 0,
+            errMsg: 'ok',
+            contentType: 'image/jpeg',
+            buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0])
+          }
         }
       }
     },
@@ -261,6 +273,7 @@ function assertSecurityPermissions() {
   const permissions = (config.permissions && config.permissions.openapi) || []
   assert.ok(permissions.includes('security.msgSecCheck'))
   assert.ok(permissions.includes('security.imgSecCheck'))
+  assert.ok(permissions.includes('wxacode.getUnlimited'))
   assert.ok(!permissions.includes('security.mediaCheckAsync'))
 }
 
@@ -313,6 +326,9 @@ async function run() {
     assert.equal(invalidPublish.ok, false)
     assert.equal(invalidPublish.error.code, 'PUBLISH_REQUIRED')
     assert.equal(securityCallCount(cloud), 0, 'required-field validation must run before content checks')
+    const draftQr = await call({ action: 'getQrCode', id })
+    assert.equal(draftQr.ok, false)
+    assert.equal(draftQr.error.code, 'QR_ARCHIVE_NOT_PUBLISHED')
 
     const file = name => `cloud://env-id/tea-archives/${uploadToken}/${name}`
     const publishedRoot = {
@@ -393,6 +409,24 @@ async function run() {
       'public detail image must resolve from the server-side published copy'
     )
     assert.equal(firstPublic.data.custom_items[0].title, '获奖记录')
+
+    const uploadsBeforeQr = cloud.__security.calls.upload.length
+    const firstQr = await call({ action: 'getQrCode', id })
+    assert.equal(firstQr.ok, true)
+    assert.match(firstQr.data.file_id, /tea-archives-published\/codes\//)
+    assert.equal(firstQr.data.mime_type, 'image/jpeg')
+    assert.equal(firstQr.data.file_base64, Buffer.from([0xff, 0xd8, 0xff, 0xe0]).toString('base64'))
+    assert.equal(cloud.__security.calls.qr.length, 1)
+    assert.equal(cloud.__security.calls.qr[0].scene, id)
+    assert.equal(cloud.__security.calls.qr[0].page, 'pages/archive/archive')
+    assert.equal(cloud.__security.calls.qr[0].envVersion, 'release')
+    assert.equal(cloud.__security.calls.upload.length, uploadsBeforeQr + 1)
+
+    const cachedQr = await call({ action: 'getQrCode', id })
+    assert.equal(cachedQr.ok, true)
+    assert.equal(cachedQr.data.file_id, firstQr.data.file_id)
+    assert.ok(cachedQr.data.file_base64, 'cached qr code must return reusable image data')
+    assert.equal(cloud.__security.calls.qr.length, 1, 'cached qr code must not be regenerated')
 
     const draftRoot = { ...publishedRoot, tea_name: '白牡丹·修改中' }
     const draftMedia = [{
@@ -558,24 +592,28 @@ async function run() {
 
     cloud.__security.resetCalls()
     cloud.__security.resetHandlers()
-    await assertRejectedWithoutWrites({
-      call,
-      cloud,
-      event: {
-        action: 'save',
-        archive: {
-          id: videoDraftStart.data.id,
-          revision: 1,
-          status: 'published',
-          root: videoDraftRoot,
-          media: videoDraftMedia,
-          custom_items: draftCustom
-        }
-      },
-      code: 'VIDEO_CHECK_UNSUPPORTED',
-      message: 'any video must block publishing when no video-content checker is allowed'
+    const publishedVideo = await call({
+      action: 'save',
+      archive: {
+        id: videoDraftStart.data.id,
+        revision: 1,
+        status: 'published',
+        root: videoDraftRoot,
+        media: videoDraftMedia,
+        custom_items: draftCustom
+      }
     })
-    assert.equal(securityCallCount(cloud), 0, 'video rejection must run before every security or upload API')
+    assert.equal(publishedVideo.ok, true, 'videos may be published without video moderation')
+    const checkedDownloads = cloud.__security.calls.download.map(options => options.fileID)
+    assert.ok(checkedDownloads.includes(videoDraftRoot.cover_image_file_id), 'cover image is still checked')
+    assert.ok(!checkedDownloads.includes(videoDraftMedia[0].file_id), 'video body must not be checked')
+    assert.ok(!checkedDownloads.includes(videoDraftMedia[0].poster_file_id), 'video poster must not be checked')
+    assert.equal(cloud.__security.calls.img.length, 1, 'only the required cover image is checked')
+    assert.equal(cloud.__security.calls.mediaAsync.length, 0)
+    const publicVideo = await call({ action: 'getPublicArchive', id: videoDraftStart.data.id })
+    assert.equal(publicVideo.ok, true)
+    assert.equal(publicVideo.data.media[0].media_type, 'video')
+    assert.match(publicVideo.data.media[0].file_id, /^https:\/\/temp\.test\//)
 
     cloud.__security.resetCalls()
     cloud.__security.resetHandlers()
