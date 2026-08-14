@@ -61,7 +61,7 @@ export const SECTIONS = [
     fields: [
       { key: 'brandName', label: '品牌或店铺名称', type: 'text', icon: '/assets/icons/tea-archive/storefront.png' },
       { key: 'story', label: '品牌、茶园或制茶人故事', type: 'textarea', icon: '/assets/icons/tea-archive/scroll.png' },
-      { key: 'contactInfo', label: '联系信息', type: 'textarea', icon: '/assets/icons/tea-archive/address-book.png' },
+      { key: 'contactInfo', label: '历史与文化', type: 'textarea', icon: '/assets/icons/tea-archive/address-book.png' },
       { key: 'media', label: '图片与视频', type: 'media', icon: '/assets/icons/tea-archive/film-slate.png' }
     ]
   }

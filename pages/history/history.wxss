@@ -1,5 +1,15 @@
+.page-selecting {
+  padding-bottom: 180rpx;
+}
+
 .history-head {
   padding-bottom: 36rpx;
+}
+
+.history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .history-title {
@@ -11,6 +21,18 @@
   margin-top: 8rpx;
   font-size: 24rpx;
   color: var(--muted);
+}
+
+.history-select-action {
+  flex: none;
+  margin-top: 6rpx;
+  padding: 8rpx 0 8rpx 32rpx;
+  font-size: 27rpx;
+  color: var(--tea);
+}
+
+.history-select-action-active {
+  opacity: 0.6;
 }
 
 .history-row {
@@ -29,6 +51,30 @@
 .history-main {
   flex: 1;
   min-width: 0;
+}
+
+.select-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 38rpx;
+  height: 38rpx;
+  margin-right: 28rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #a9a79f;
+  border-radius: 50%;
+}
+
+.select-circle-checked {
+  border-color: var(--tea);
+  background: var(--tea);
+}
+
+.select-check {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--paper);
 }
 
 .history-name {
@@ -68,4 +114,25 @@
 .history-retry {
   margin-top: 20rpx;
   color: var(--tea);
+}
+
+.history-confirm {
+  position: fixed;
+  right: 40rpx;
+  bottom: 64rpx;
+  min-width: 190rpx;
+  height: 82rpx;
+  padding: 0 28rpx;
+  box-sizing: border-box;
+  line-height: 82rpx;
+  text-align: center;
+  font-size: 27rpx;
+  letter-spacing: 2rpx;
+  color: var(--paper);
+  background: var(--tea);
+}
+
+.history-confirm-disabled {
+  color: #f4f0e8;
+  background: #c8c3b8;
 }

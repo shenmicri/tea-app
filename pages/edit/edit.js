@@ -135,7 +135,9 @@ Page({
     collapsed: {}, // 区块折叠状态，默认全部展开
     canGenerate: false,
     initializing: true,
-    saving: false
+    saving: false,
+    editorKeyboardHeight: 0,
+    activeEditorId: ''
   },
 
   async onLoad(options) {
@@ -201,6 +203,37 @@ Page({
   },
 
   onSaveBarTap() {},
+
+  onEditorFocus(e) {
+    const activeEditorId = String(e.currentTarget.dataset.focusId || '')
+    this.setData({ activeEditorId }, () => this.ensureActiveEditorVisible())
+  },
+
+  onEditorKeyboardHeightChange(e) {
+    const editorKeyboardHeight = Math.max(0, Number(e.detail && e.detail.height) || 0)
+    this.setData({ editorKeyboardHeight }, () => this.ensureActiveEditorVisible())
+  },
+
+  ensureActiveEditorVisible() {
+    const { activeEditorId, editorKeyboardHeight } = this.data
+    if (!activeEditorId || !editorKeyboardHeight) return
+    if (typeof wx.createSelectorQuery !== 'function' || typeof wx.pageScrollTo !== 'function') return
+    setTimeout(() => {
+      if (!this.data.editorKeyboardHeight || this.data.activeEditorId !== activeEditorId) return
+      const query = wx.createSelectorQuery()
+      query.select(`#${activeEditorId}`).boundingClientRect()
+      query.selectViewport().scrollOffset()
+      query.exec(result => {
+        const fieldRect = result && result[0]
+        const viewport = result && result[1]
+        if (!fieldRect || !viewport) return
+        wx.pageScrollTo({
+          scrollTop: Math.max(0, viewport.scrollTop + fieldRect.top - 96),
+          duration: 180
+        })
+      })
+    }, 80)
+  },
 
   onFieldInput(e) {
     const { section, field } = e.currentTarget.dataset

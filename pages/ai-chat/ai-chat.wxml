@@ -1,0 +1,43 @@
+<view class="chat-page">
+  <view class="chat-context">已选择 {{selectedCount}} 份茶叶档案</view>
+
+  <scroll-view
+    class="chat-records"
+    scroll-y
+    scroll-into-view="{{scrollIntoView}}"
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view wx:if="{{messages.length === 0}}" class="chat-empty">
+      可以询问档案总结、茶叶特点，或比较不同茶叶之间的差异。
+    </view>
+    <view
+      id="{{item.id}}"
+      class="chat-message {{item.role === 'user' ? 'chat-message-user' : 'chat-message-ai'}}"
+      wx:for="{{messages}}"
+      wx:key="id"
+    >
+      <view class="chat-role">{{item.role === 'user' ? '你' : '茶叶档案 AI'}}</view>
+      <view class="chat-bubble">{{item.content}}</view>
+    </view>
+    <view wx:if="{{sending}}" class="chat-thinking">正在根据所选档案整理回答…</view>
+  </scroll-view>
+
+  <view class="chat-composer">
+    <textarea
+      class="chat-input"
+      value="{{inputValue}}"
+      bindinput="onInput"
+      placeholder="输入你想了解的问题"
+      placeholder-class="chat-placeholder"
+      auto-height
+      maxlength="2000"
+      show-confirm-bar="{{false}}"
+      disabled="{{sending || selectedCount === 0}}"
+    />
+    <view
+      class="chat-send {{inputValue && !sending && selectedCount > 0 ? '' : 'chat-send-disabled'}}"
+      bindtap="onSendTap"
+    >{{sending ? '等待' : '发送'}}</view>
+  </view>
+</view>

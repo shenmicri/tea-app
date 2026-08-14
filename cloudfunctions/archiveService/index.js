@@ -36,7 +36,7 @@ const TEXT_FIELDS = [
   ['planting_and_harvest', '种植与采摘'],
   ['brand_name', '品牌名称'],
   ['brand_story', '品牌故事'],
-  ['contact_info', '联系信息']
+  ['contact_info', '历史与文化']
 ]
 
 function serviceError(code, message) {

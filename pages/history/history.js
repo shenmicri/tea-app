@@ -11,7 +11,10 @@ Page({
   data: {
     records: [],
     loaded: false,
-    loadError: ''
+    loadError: '',
+    selecting: false,
+    selectedMap: {},
+    selectedCount: 0
   },
 
   onShow() {
@@ -48,6 +51,42 @@ Page({
   onRecordTap(event) {
     const id = event.currentTarget.dataset.id
     if (!id) return
+    if (this.data.selecting) {
+      this.toggleRecord(id)
+      return
+    }
     wx.navigateTo({ url: `/pages/archive/archive?id=${id}` })
+  },
+
+  onSelectModeTap() {
+    if (this.data.selecting) {
+      this.setData({ selecting: false, selectedMap: {}, selectedCount: 0 })
+      return
+    }
+    this.setData({ selecting: true, selectedMap: {}, selectedCount: 0 })
+  },
+
+  onCircleTap(event) {
+    const id = event.currentTarget.dataset.id
+    if (id) this.toggleRecord(id)
+  },
+
+  toggleRecord(id) {
+    const selected = Boolean(this.data.selectedMap[id])
+    if (!selected && this.data.selectedCount >= 5) {
+      wx.showToast({ title: '最多选择5份档案', icon: 'none' })
+      return
+    }
+    this.setData({
+      [`selectedMap.${id}`]: !selected,
+      selectedCount: this.data.selectedCount + (selected ? -1 : 1)
+    })
+  },
+
+  onConfirmTap() {
+    if (!this.data.selecting || this.data.selectedCount < 1) return
+    const ids = Object.keys(this.data.selectedMap).filter(id => this.data.selectedMap[id]).slice(0, 5)
+    if (!ids.length) return
+    wx.navigateTo({ url: `/pages/ai-chat/ai-chat?ids=${encodeURIComponent(ids.join(','))}` })
   }
 })

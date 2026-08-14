@@ -115,6 +115,13 @@ async function runEditTests(schema) {
   page.data.initializing = false
   page.data.uploadToken = 'archive-upload-token'
 
+  page.onEditorFocus({ currentTarget: { dataset: { focusId: 'field-feature-usage' } } })
+  page.onEditorKeyboardHeightChange({ detail: { height: 318 } })
+  assert.equal(page.data.activeEditorId, 'field-feature-usage')
+  assert.equal(page.data.editorKeyboardHeight, 318)
+  page.onEditorKeyboardHeightChange({ detail: { height: 0 } })
+  assert.equal(page.data.editorKeyboardHeight, 0)
+
   await page.onSaveDraft()
   assert.equal(saves.at(-1).status, 'draft')
   assert.equal(page.data.id, 'archive01')
@@ -223,8 +230,10 @@ async function runArchiveTests(schema) {
 
 async function runHomeAndHistoryTests() {
   const navigations = []
+  const toasts = []
   const wx = {
-    navigateTo(options) { navigations.push(options.url) }
+    navigateTo(options) { navigations.push(options.url) },
+    showToast(options) { toasts.push(options) }
   }
   const homeDefinition = evaluatePage('pages/index/index.js', ['wx'], [wx])
   const home = instantiate(homeDefinition)
@@ -252,9 +261,59 @@ async function runHomeAndHistoryTests() {
   history.onRecordTap({ currentTarget: { dataset: { id: 'archive01' } } })
   assert.equal(navigations.at(-1), '/pages/archive/archive?id=archive01')
 
+  history.onSelectModeTap()
+  assert.equal(history.data.selecting, true)
+  history.onRecordTap({ currentTarget: { dataset: { id: 'archive01' } } })
+  assert.equal(history.data.selectedMap.archive01, true)
+  assert.equal(history.data.selectedCount, 1)
+  history.onConfirmTap()
+  assert.equal(navigations.at(-1), '/pages/ai-chat/ai-chat?ids=archive01')
+  for (const id of ['archive02', 'archive03', 'archive04', 'archive05']) history.toggleRecord(id)
+  history.toggleRecord('archive06')
+  assert.equal(history.data.selectedCount, 5)
+  assert.equal(toasts.at(-1).title, '最多选择5份档案')
+  history.onSelectModeTap()
+  assert.equal(history.data.selecting, false)
+  assert.equal(history.data.selectedCount, 0)
+
   const appConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'app.json'), 'utf8'))
   assert.equal(appConfig.pages[0], 'pages/index/index')
   assert.ok(appConfig.pages.includes('pages/history/history'))
+  assert.ok(appConfig.pages.includes('pages/ai-chat/ai-chat'))
+}
+
+async function runAiChatTests() {
+  const calls = { send: [], modal: [], toast: [] }
+  const wx = {
+    showModal(options) { calls.modal.push(options) },
+    showToast(options) { calls.toast.push(options) }
+  }
+  const sendTeaAiMessage = async (archiveIds, messages) => {
+    calls.send.push({ archiveIds, messages })
+    return { answer: '两份档案都属于白茶，但香气描述不同。' }
+  }
+  const definition = evaluatePage(
+    'pages/ai-chat/ai-chat.js',
+    ['sendTeaAiMessage', 'wx'],
+    [sendTeaAiMessage, wx]
+  )
+  const page = instantiate(definition)
+  page.onLoad({ ids: encodeURIComponent('archive01,archive02,archive01') })
+  assert.deepEqual(page.data.archiveIds, ['archive01', 'archive02'])
+  assert.equal(page.data.selectedCount, 2)
+  page.onInput({ detail: { value: '请比较这两份茶叶档案' } })
+  await page.onSendTap()
+  assert.equal(calls.send.length, 1)
+  assert.deepEqual(calls.send[0].archiveIds, ['archive01', 'archive02'])
+  assert.equal(calls.send[0].messages[0].role, 'user')
+  assert.equal(calls.send[0].messages[0].content, '请比较这两份茶叶档案')
+  assert.equal(page.data.messages[1].role, 'assistant')
+  assert.equal(page.data.messages[1].content, '两份档案都属于白茶，但香气描述不同。')
+  assert.equal(page.data.sending, false)
+
+  const emptyPage = instantiate(definition)
+  emptyPage.onLoad({ ids: '' })
+  assert.equal(calls.modal.at(-1).title, '没有选择档案')
 }
 
 async function runQrCodeTests() {
@@ -311,6 +370,7 @@ async function run() {
   await runEditTests(schema)
   await runArchiveTests(schema)
   await runHomeAndHistoryTests()
+  await runAiChatTests()
   await runQrCodeTests()
   console.log('passed: editor/archive, home/history, and qr-code flows')
 }

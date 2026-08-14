@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/list/list",
     "pages/history/history",
+    "pages/ai-chat/ai-chat",
     "pages/edit/edit",
     "pages/archive/archive",
     "pages/qrcode/qrcode"

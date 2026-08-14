@@ -1,0 +1,9 @@
+{
+  "name": "tea-ai",
+  "version": "1.0.0",
+  "description": "Temporary DeepSeek chat over selected published tea archives",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "4.0.2"
+  }
+}

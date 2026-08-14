@@ -9,7 +9,7 @@
     </view>
 
     <view class="section-body" wx:if="{{!collapsed[sec.key]}}">
-      <view class="field" wx:for="{{sec.fields}}" wx:for-item="f" wx:key="key">
+      <view id="field-{{sec.key}}-{{f.key}}" class="field" wx:for="{{sec.fields}}" wx:for-item="f" wx:key="key">
         <view class="label">
           {{f.label}}<text class="req" wx:if="{{f.required}}">（必填）</text>
         </view>
@@ -39,7 +39,12 @@
           value="{{sections[sec.key][f.key]}}"
           data-section="{{sec.key}}"
           data-field="{{f.key}}"
+          data-focus-id="field-{{sec.key}}-{{f.key}}"
           bindinput="onFieldInput"
+          bindfocus="onEditorFocus"
+          bindkeyboardheightchange="onEditorKeyboardHeightChange"
+          adjust-position="{{true}}"
+          cursor-spacing="120"
         />
 
         <textarea
@@ -48,7 +53,12 @@
           value="{{sections[sec.key][f.key]}}"
           data-section="{{sec.key}}"
           data-field="{{f.key}}"
+          data-focus-id="field-{{sec.key}}-{{f.key}}"
           bindinput="onFieldInput"
+          bindfocus="onEditorFocus"
+          bindkeyboardheightchange="onEditorKeyboardHeightChange"
+          adjust-position="{{true}}"
+          cursor-spacing="120"
           maxlength="-1"
         />
 
@@ -106,7 +116,7 @@
     </view>
 
     <view class="section-body">
-      <view class="custom" wx:for="{{customSections}}" wx:key="id">
+      <view id="custom-field-{{index}}" class="custom" wx:for="{{customSections}}" wx:key="id">
         <view class="custom-head">
           <input
             class="input custom-title"
@@ -114,7 +124,12 @@
             placeholder-class="placeholder"
             value="{{item.title}}"
             data-index="{{index}}"
+            data-focus-id="custom-field-{{index}}"
             bindinput="onCustomTitleInput"
+            bindfocus="onEditorFocus"
+            bindkeyboardheightchange="onEditorKeyboardHeightChange"
+            adjust-position="{{true}}"
+            cursor-spacing="120"
           />
           <view class="custom-del" data-index="{{index}}" bindtap="onCustomRemove">删除</view>
         </view>
@@ -122,7 +137,12 @@
           class="textarea"
           value="{{item.content}}"
           data-index="{{index}}"
+          data-focus-id="custom-field-{{index}}"
           bindinput="onCustomContentInput"
+          bindfocus="onEditorFocus"
+          bindkeyboardheightchange="onEditorKeyboardHeightChange"
+          adjust-position="{{true}}"
+          cursor-spacing="120"
           maxlength="-1"
         />
       </view>
@@ -133,7 +153,7 @@
     </view>
   </view>
 
-  <view class="bottom-space"></view>
+  <view class="bottom-space" style="height: calc(180rpx + {{editorKeyboardHeight}}px);"></view>
 </view>
 
 <!-- cover-view 保证操作区域位于 input / textarea 等原生输入组件之上；catchtap 阻止触摸穿透。 -->
