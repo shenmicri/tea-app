@@ -1,0 +1,88 @@
+.home-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 96rpx 40rpx 72rpx;
+}
+
+.home-head {
+  padding: 36rpx 0 72rpx;
+}
+
+.home-kicker {
+  font-size: 20rpx;
+  letter-spacing: 8rpx;
+  color: var(--gold);
+}
+
+.home-title {
+  margin-top: 22rpx;
+  font-size: 58rpx;
+  line-height: 1.35;
+  letter-spacing: 6rpx;
+}
+
+.home-subtitle {
+  max-width: 560rpx;
+  margin-top: 24rpx;
+  font-size: 26rpx;
+  line-height: 1.9;
+  color: var(--ink-weak);
+}
+
+.home-actions {
+  border-top: 1rpx solid var(--line);
+}
+
+.home-action {
+  display: flex;
+  align-items: center;
+  min-height: 180rpx;
+  padding: 24rpx 20rpx;
+  box-sizing: border-box;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.home-action-primary {
+  color: var(--paper);
+  background: var(--tea);
+  border-bottom-color: var(--tea);
+}
+
+.home-action-active {
+  opacity: 0.78;
+}
+
+.action-index {
+  width: 72rpx;
+  flex: none;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: var(--gold);
+}
+
+.action-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-title {
+  font-size: 38rpx;
+  letter-spacing: 3rpx;
+}
+
+.action-desc {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: var(--muted);
+}
+
+.home-action-primary .action-desc {
+  color: #d6ddd8;
+}
+
+.action-arrow {
+  flex: none;
+  margin-left: 20rpx;
+  font-size: 52rpx;
+  font-weight: 200;
+}

@@ -1,0 +1,27 @@
+<view class="home-page">
+  <view class="home-head">
+    <view class="home-kicker">TEA ARCHIVE</view>
+    <view class="home-title serif">茶叶电子档案</view>
+    <view class="home-subtitle">创建档案，或重新查看曾经了解过的茶叶。</view>
+  </view>
+
+  <view class="home-actions">
+    <view class="home-action home-action-primary" bindtap="onCreateTap" hover-class="home-action-active">
+      <view class="action-index">01</view>
+      <view class="action-copy">
+        <view class="action-title serif">新建档案</view>
+        <view class="action-desc">进入我的档案列表</view>
+      </view>
+      <view class="action-arrow">›</view>
+    </view>
+
+    <view class="home-action" bindtap="onHistoryTap" hover-class="home-action-active">
+      <view class="action-index">02</view>
+      <view class="action-copy">
+        <view class="action-title serif">历史记录</view>
+        <view class="action-desc">查看以前访问过的档案</view>
+      </view>
+      <view class="action-arrow">›</view>
+    </view>
+  </view>
+</view>

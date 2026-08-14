@@ -174,6 +174,7 @@ async function runEditTests(schema) {
 
 async function runArchiveTests(schema) {
   const previewCalls = []
+  const recordedViews = []
   const sections = completeSections(schema)
   sections.feature.profile = '芽叶连枝，银毫披覆。'
   sections.feature.media = [{
@@ -198,8 +199,8 @@ async function runArchiveTests(schema) {
   }
   const definition = evaluatePage(
     'pages/archive/archive.js',
-    ['SECTIONS', 'getPublicArchive', 'wx'],
-    [schema.SECTIONS, async () => archive, wx]
+    ['SECTIONS', 'getPublicArchive', 'recordArchiveView', 'wx'],
+    [schema.SECTIONS, async () => archive, async id => { recordedViews.push(id) }, wx]
   )
   const page = instantiate(definition)
   await page.onLoad({ id: 'archive01' })
@@ -209,6 +210,7 @@ async function runArchiveTests(schema) {
   assert.deepEqual(page.data.displaySections.map(section => section.empty), [false, true, false])
   assert.deepEqual(page.data.displaySections[0].fields.map(field => field.key), ['profile', 'media'])
   assert.deepEqual(page.data.expanded, {})
+  assert.deepEqual(recordedViews, ['archive01'])
 
   page.onToggleSection({ currentTarget: { dataset: { key: 'origin', empty: true } } })
   assert.equal(page.data.expanded.origin, undefined)
@@ -217,6 +219,42 @@ async function runArchiveTests(schema) {
 
   page.onPreviewImage({ currentTarget: { dataset: { current: '/tests/fixtures/white-peony-leaves.jpg' } } })
   assert.equal(previewCalls.at(-1).current, '/tests/fixtures/white-peony-leaves.jpg')
+}
+
+async function runHomeAndHistoryTests() {
+  const navigations = []
+  const wx = {
+    navigateTo(options) { navigations.push(options.url) }
+  }
+  const homeDefinition = evaluatePage('pages/index/index.js', ['wx'], [wx])
+  const home = instantiate(homeDefinition)
+  home.onCreateTap()
+  home.onHistoryTap()
+  assert.deepEqual(navigations, ['/pages/list/list', '/pages/history/history'])
+
+  const historyDefinition = evaluatePage(
+    'pages/history/history.js',
+    ['listViewHistory', 'wx'],
+    [async () => [{
+      id: 'archive01',
+      name: '白牡丹',
+      category: '白茶',
+      lastViewedAt: Date.parse('2026-08-14T09:30:00-04:00')
+    }], wx]
+  )
+  const history = instantiate(historyDefinition)
+  await history.load()
+  assert.equal(history.data.records.length, 1)
+  assert.equal(history.data.records[0].name, '白牡丹')
+  assert.equal(history.data.records[0].category, '白茶')
+  assert.match(history.data.records[0].viewedText, /^2026-08-14 09:30$/)
+  assert.equal(Object.hasOwn(history.data.records[0], 'coverImage'), false)
+  history.onRecordTap({ currentTarget: { dataset: { id: 'archive01' } } })
+  assert.equal(navigations.at(-1), '/pages/archive/archive?id=archive01')
+
+  const appConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'app.json'), 'utf8'))
+  assert.equal(appConfig.pages[0], 'pages/index/index')
+  assert.ok(appConfig.pages.includes('pages/history/history'))
 }
 
 async function runQrCodeTests() {
@@ -240,22 +278,22 @@ async function runQrCodeTests() {
       path: `/user/archive-code-${id}.jpg`,
       fileId: `cloud://test/codes/${id}.jpg`,
       id,
+      name: '白牡丹',
+      cacheStatus: 'hit',
       hint: ''
     }
   }
   const definition = evaluatePage(
     'pages/qrcode/qrcode.js',
-    ['getPublicArchive', 'getQrCode', 'wx'],
-    [
-      async id => ({ id, name: '白牡丹', status: 'published' }),
-      getQrCode,
-      wx
-    ]
+    ['getQrCode', 'wx'],
+    [getQrCode, wx]
   )
   const page = instantiate(definition)
   await page.onLoad({ id: 'archive01' })
   assert.equal(page.data.available, true)
   assert.equal(page.data.qr.ready, true)
+  assert.equal(page.data.name, '白牡丹')
+  assert.equal(page.data.qr.cacheStatus, 'hit')
   assert.equal(qrCalls, 1)
 
   page.onPreviewTap()
@@ -272,8 +310,9 @@ async function run() {
   const schema = evaluateSchema()
   await runEditTests(schema)
   await runArchiveTests(schema)
+  await runHomeAndHistoryTests()
   await runQrCodeTests()
-  console.log('passed: editor/archive behavior and qr-code display/save flow')
+  console.log('passed: editor/archive, home/history, and qr-code flows')
 }
 
 run().catch(error => {

@@ -1,5 +1,5 @@
 <view class="page" wx:if="{{available}}">
-  <view class="name serif">{{name}}</view>
+  <view class="name serif">{{name || '茶叶档案'}}</view>
 
   <view class="hairline"></view>
 

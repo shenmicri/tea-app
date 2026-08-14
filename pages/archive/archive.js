@@ -1,5 +1,5 @@
 import { SECTIONS } from '../../config/schema'
-import { getPublicArchive } from '../../utils/store'
+import { getPublicArchive, recordArchiveView } from '../../utils/store'
 
 function hasValue(field, value) {
   if (field.type === 'media') return Array.isArray(value) && value.length > 0
@@ -47,8 +47,9 @@ Page({
   },
 
   async onLoad(options) {
+    const archiveId = getArchiveId(options)
     try {
-      const archive = await getPublicArchive(getArchiveId(options))
+      const archive = await getPublicArchive(archiveId)
       if (!archive || archive.status !== 'published') {
         this.setData({ loaded: true, found: false })
         return
@@ -70,6 +71,12 @@ Page({
           .map(item => ({ ...item, key: `custom-${item.id}` }))
       })
       wx.setNavigationBarTitle({ title: archive.name || '茶叶档案' })
+      try {
+        await recordArchiveView(archive.id || archiveId)
+      } catch (error) {
+        // 历史记录失败不能阻止消费者阅读已经成功加载的公开档案。
+        console.warn('[archive] record view failed', error && error.code)
+      }
     } catch (error) {
       this.setData({
         loaded: true,

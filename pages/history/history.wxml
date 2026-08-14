@@ -1,0 +1,35 @@
+<view class="page">
+  <view class="history-head">
+    <view class="history-title serif">历史记录</view>
+    <view class="history-subtitle">以前访问过的茶叶档案</view>
+  </view>
+
+  <view class="hairline"></view>
+
+  <block wx:if="{{records.length > 0}}">
+    <view
+      class="history-row"
+      wx:for="{{records}}"
+      wx:key="id"
+      bindtap="onRecordTap"
+      hover-class="history-row-active"
+      data-id="{{item.id}}"
+    >
+      <view class="history-main">
+        <view class="history-name serif">{{item.name}}</view>
+        <view class="history-category">{{item.category}}</view>
+        <view class="history-time">最近查看 {{item.viewedText}}</view>
+      </view>
+      <view class="history-arrow">›</view>
+    </view>
+  </block>
+
+  <view class="history-empty" wx:elif="{{loaded && loadError}}">
+    <view>{{loadError}}</view>
+    <view class="history-retry" bindtap="onRetryTap">重新加载</view>
+  </view>
+
+  <view class="history-empty" wx:elif="{{loaded}}">
+    还没有访问记录。扫描茶叶档案小程序码并成功打开后，会显示在这里。
+  </view>
+</view>

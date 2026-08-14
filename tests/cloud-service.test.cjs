@@ -16,7 +16,8 @@ function createCloudMock() {
   const tables = new Map([
     ['tea_archives', new Map()],
     ['archive_media', new Map()],
-    ['archive_custom_items', new Map()]
+    ['archive_custom_items', new Map()],
+    ['archive_view_history', new Map()]
   ])
   let openid = 'owner-a'
   let clock = Date.parse('2026-08-13T12:00:00Z')
@@ -67,6 +68,10 @@ function createCloudMock() {
       },
       async remove() {
         return { stats: { removed: rows.delete(id) ? 1 : 0 } }
+      },
+      async set({ data }) {
+        rows.set(id, { ...clone(data), _id: id })
+        return { stats: { updated: 1 } }
       }
     })
 
@@ -107,7 +112,7 @@ function createCloudMock() {
     DYNAMIC_CURRENT_ENV: 'dynamic-current-env',
     init() {},
     database() {
-      return {
+      const database = {
         collection,
         command: {
           set(value) {
@@ -117,8 +122,23 @@ function createCloudMock() {
         serverDate() {
           clock += 1000
           return new Date(clock)
+        },
+        async runTransaction(callback) {
+          const snapshot = new Map(Array.from(tables.entries()).map(([name, rows]) => [
+            name,
+            new Map(Array.from(rows.entries()).map(([id, row]) => [id, clone(row)]))
+          ]))
+          try {
+            return await callback({ collection })
+          } catch (error) {
+            for (const [name, rows] of snapshot.entries()) {
+              tables.set(name, rows)
+            }
+            throw error
+          }
         }
       }
+      return database
     },
     getWXContext() { return { OPENID: openid } },
     openapi: {
@@ -235,7 +255,9 @@ function snapshotArchiveTables(cloud, archiveId) {
   return Object.fromEntries(names.map(name => [
     name,
     Array.from(cloud.__table(name).values())
-      .filter(row => name === 'tea_archives' ? row._id === archiveId : row.archive_id === archiveId)
+      .filter(row => name === 'tea_archives'
+        ? (row.archive_id === archiveId || row._id === archiveId)
+        : row.archive_id === archiveId)
       .sort((left, right) => String(left._id).localeCompare(String(right._id)))
       .map(clone)
   ]))
@@ -293,6 +315,11 @@ async function run() {
 
     const beforeFirstSave = await call({ action: 'listMine' })
     assert.deepEqual(beforeFirstSave.data, [], 'reserved drafts must stay out of listMine')
+    assert.equal(
+      cloud.__table('tea_archives').size,
+      0,
+      'opening a new editor must not create a tea_archives record'
+    )
 
     const incompleteRoot = { tea_name: '待完善白茶' }
     const incompleteSave = await call({
@@ -300,6 +327,7 @@ async function run() {
       archive: {
         id,
         revision: 0,
+        upload_token: uploadToken,
         status: 'draft',
         root: incompleteRoot,
         media: [],
@@ -309,14 +337,41 @@ async function run() {
     assert.equal(incompleteSave.ok, true, 'incomplete drafts may be saved')
     assert.equal(incompleteSave.data.root.status, 'draft')
     assert.equal(incompleteSave.data.root.revision, 1)
+    assert.equal(cloud.__table('tea_archives').has(`${id}_draft`), true)
+    assert.equal(cloud.__table('tea_archives').has(`${id}_published`), false)
+    assert.equal(cloud.__table('tea_archives').get(`${id}_draft`).record_type, 'draft')
     assert.equal((await call({ action: 'listMine' })).data.length, 1)
     assert.equal(securityCallCount(cloud), 0, 'saving a draft must not run content checks')
+
+    let repeatedRevision = 1
+    for (let index = 0; index < 3; index += 1) {
+      const repeated = await call({
+        action: 'save',
+        archive: {
+          id,
+          revision: repeatedRevision,
+          upload_token: uploadToken,
+          status: 'draft',
+          root: { ...incompleteRoot, product_code: `draft-${index}` },
+          media: [],
+          custom_items: []
+        }
+      })
+      assert.equal(repeated.ok, true)
+      repeatedRevision = repeated.data.root.revision
+      assert.equal(
+        Array.from(cloud.__table('tea_archives').values())
+          .filter(row => row.archive_id === id).length,
+        1,
+        'repeated draft saves must overwrite one fixed draft record'
+      )
+    }
 
     const invalidPublish = await call({
       action: 'save',
       archive: {
         id,
-        revision: 1,
+        revision: repeatedRevision,
         status: 'published',
         root: incompleteRoot,
         media: [],
@@ -329,6 +384,9 @@ async function run() {
     const draftQr = await call({ action: 'getQrCode', id })
     assert.equal(draftQr.ok, false)
     assert.equal(draftQr.error.code, 'QR_ARCHIVE_NOT_PUBLISHED')
+    const draftView = await call({ action: 'recordView', id })
+    assert.equal(draftView.ok, false)
+    assert.equal(draftView.error.code, 'NOT_FOUND')
 
     const file = name => `cloud://env-id/tea-archives/${uploadToken}/${name}`
     const publishedRoot = {
@@ -355,7 +413,7 @@ async function run() {
       action: 'save',
       archive: {
         id,
-        revision: 1,
+        revision: repeatedRevision,
         status: 'published',
         root: publishedRoot,
         media: publishedMedia,
@@ -363,7 +421,16 @@ async function run() {
       }
     })
     assert.equal(published.ok, true)
-    assert.equal(published.data.root.revision, 2)
+    assert.equal(published.data.root.revision, repeatedRevision + 1)
+    const publishedDraftRevision = published.data.root.revision
+    assert.equal(cloud.__table('tea_archives').has(`${id}_draft`), true)
+    assert.equal(cloud.__table('tea_archives').has(`${id}_published`), true)
+    assert.equal(
+      Array.from(cloud.__table('tea_archives').values())
+        .filter(row => row.archive_id === id).length,
+      2,
+      'one logical archive must have exactly draft and published root records after publishing'
+    )
     assert.ok(cloud.__security.calls.msg.length > 0, 'publishing must check text')
     cloud.__security.calls.msg.forEach(options => {
       assert.equal(options.version, 2)
@@ -410,10 +477,47 @@ async function run() {
     )
     assert.equal(firstPublic.data.custom_items[0].title, '获奖记录')
 
+    const firstView = await call({ action: 'recordView', id })
+    assert.equal(firstView.ok, true)
+    assert.equal(firstView.data.archive_id, id)
+    assert.equal(cloud.__table('archive_view_history').size, 1)
+    const ownerAHistory = Array.from(cloud.__table('archive_view_history').values())[0]
+    const firstViewedAt = ownerAHistory.first_viewed_at.getTime()
+    const firstLastViewedAt = ownerAHistory.last_viewed_at.getTime()
+
+    const repeatedView = await call({ action: 'recordView', id })
+    assert.equal(repeatedView.ok, true)
+    assert.equal(cloud.__table('archive_view_history').size, 1, 'repeat views must update one fixed row')
+    const repeatedHistory = Array.from(cloud.__table('archive_view_history').values())[0]
+    assert.equal(repeatedHistory.first_viewed_at.getTime(), firstViewedAt)
+    assert.ok(repeatedHistory.last_viewed_at.getTime() > firstLastViewedAt)
+
+    const ownerAHistoryList = await call({ action: 'listHistory' })
+    assert.equal(ownerAHistoryList.ok, true)
+    assert.deepEqual(ownerAHistoryList.data.map(item => item.archive_id), [id])
+    assert.equal(ownerAHistoryList.data[0].tea_name, '白牡丹')
+    assert.equal(ownerAHistoryList.data[0].tea_type, '白茶')
+    assert.deepEqual(
+      Object.keys(ownerAHistoryList.data[0]).sort(),
+      ['archive_id', 'last_viewed_at', 'tea_name', 'tea_type'],
+      'history list must not return cover images or archive body content'
+    )
+
+    cloud.__setOpenId('viewer-b')
+    const secondViewer = await call({ action: 'recordView', id })
+    assert.equal(secondViewer.ok, true)
+    assert.equal(cloud.__table('archive_view_history').size, 2)
+    const viewerBHistory = await call({ action: 'listHistory' })
+    assert.deepEqual(viewerBHistory.data.map(item => item.archive_id), [id])
+    cloud.__setOpenId('owner-a')
+
     const uploadsBeforeQr = cloud.__security.calls.upload.length
     const firstQr = await call({ action: 'getQrCode', id })
     assert.equal(firstQr.ok, true)
     assert.match(firstQr.data.file_id, /tea-archives-published\/codes\//)
+    assert.equal(firstQr.data.archive_id, id)
+    assert.equal(firstQr.data.tea_name, '白牡丹')
+    assert.equal(firstQr.data.cache_status, 'generated')
     assert.equal(firstQr.data.mime_type, 'image/jpeg')
     assert.equal(firstQr.data.file_base64, Buffer.from([0xff, 0xd8, 0xff, 0xe0]).toString('base64'))
     assert.equal(cloud.__security.calls.qr.length, 1)
@@ -425,6 +529,8 @@ async function run() {
     const cachedQr = await call({ action: 'getQrCode', id })
     assert.equal(cachedQr.ok, true)
     assert.equal(cachedQr.data.file_id, firstQr.data.file_id)
+    assert.equal(cachedQr.data.tea_name, '白牡丹')
+    assert.equal(cachedQr.data.cache_status, 'hit')
     assert.ok(cachedQr.data.file_base64, 'cached qr code must return reusable image data')
     assert.equal(cloud.__security.calls.qr.length, 1, 'cached qr code must not be regenerated')
 
@@ -444,7 +550,7 @@ async function run() {
       action: 'save',
       archive: {
         id,
-        revision: 2,
+        revision: publishedDraftRevision,
         status: 'draft',
         root: draftRoot,
         media: draftMedia,
@@ -452,8 +558,15 @@ async function run() {
       }
     })
     assert.equal(draftSave.ok, true)
+    const editedDraftRevision = draftSave.data.root.revision
     assert.equal(draftSave.data.root.status, 'draft')
     assert.equal(draftSave.data.root.public_status, 'published')
+    assert.equal(
+      Array.from(cloud.__table('tea_archives').values())
+        .filter(row => row.archive_id === id).length,
+      2,
+      'saving after publication must overwrite draft instead of inserting a third root record'
+    )
     assert.equal(securityCallCount(cloud), 0, 'saving edits as a draft must not run content checks')
     cloud.__security.resetHandlers()
 
@@ -481,7 +594,7 @@ async function run() {
       action: 'save',
       archive: {
         id,
-        revision: 3,
+        revision: editedDraftRevision,
         status: 'published',
         root: draftRoot,
         media: draftMedia,
@@ -581,6 +694,7 @@ async function run() {
       archive: {
         id: videoDraftStart.data.id,
         revision: 0,
+        upload_token: videoDraftStart.data.upload_token,
         status: 'draft',
         root: videoDraftRoot,
         media: videoDraftMedia,
@@ -626,6 +740,7 @@ async function run() {
       archive: {
         id: longTextStart.data.id,
         revision: 0,
+        upload_token: longTextStart.data.upload_token,
         status: 'published',
         root: {
           tea_name: '长文本测试茶',
@@ -646,6 +761,14 @@ async function run() {
       cloud.__security.calls.msg.map(options => options.content).join('').includes(longTextValue),
       'text chunking must not omit content'
     )
+    const laterView = await call({ action: 'recordView', id: longTextStart.data.id })
+    assert.equal(laterView.ok, true)
+    const orderedHistory = await call({ action: 'listHistory' })
+    assert.deepEqual(
+      orderedHistory.data.map(item => item.archive_id),
+      [longTextStart.data.id, id],
+      'history must be ordered by the most recent successful view'
+    )
 
     cloud.__security.resetCalls()
     cloud.__security.resetHandlers()
@@ -653,7 +776,7 @@ async function run() {
       action: 'save',
       archive: {
         id,
-        revision: 3,
+        revision: editedDraftRevision,
         status: 'published',
         root: draftRoot,
         media: draftMedia,
@@ -661,6 +784,19 @@ async function run() {
       }
     })
     assert.equal(republished.ok, true)
+    assert.equal(
+      Array.from(cloud.__table('tea_archives').values())
+        .filter(row => row.archive_id === id).length,
+      2,
+      're-publishing must overwrite the fixed draft and published records'
+    )
+    for (const tableName of ['archive_media', 'archive_custom_items']) {
+      const rows = Array.from(cloud.__table(tableName).values())
+        .filter(row => row.archive_id === id)
+      assert.ok(rows.every(row => ['draft', 'published'].includes(row.record_type)))
+      const keys = new Set(rows.map(row => `${row.record_type}:${row.media_id || row.custom_item_id}`))
+      assert.equal(rows.length, keys.size, `${tableName} must not retain save-history duplicates`)
+    }
     assert.ok(
       cloud.__security.calls.delete.flat().some(fileId => firstPublishedFileIds.includes(fileId)),
       're-publishing must clean the explicitly captured previous published image copies'
@@ -691,7 +827,17 @@ async function run() {
         .filter(row => row.archive_id === id)
       assert.equal(leftovers.length, 0, `${tableName} must be cascade-deleted`)
     }
-    assert.equal(cloud.__table('tea_archives').has(copiedId), true, 'deleting source must retain copy')
+    assert.equal(
+      Array.from(cloud.__table('archive_view_history').values())
+        .filter(row => row.archive_id === id).length,
+      0,
+      'deleting an archive should clear its view-history references'
+    )
+    assert.equal(
+      cloud.__table('tea_archives').has(`${copiedId}_draft`),
+      true,
+      'deleting source must retain copy'
+    )
     assert.ok(
       cloud.__security.calls.delete.flat().length > 0,
       'deleting an archive must clean its server-created published image copies'
@@ -700,7 +846,7 @@ async function run() {
     assert.equal(deletedPublic.ok, false)
     assert.equal(deletedPublic.error.code, 'NOT_FOUND')
 
-    console.log('passed: archiveService in-memory three-table CRUD lifecycle')
+    console.log('passed: archiveService in-memory archive and view-history lifecycle')
   } finally {
     if (previousEnvironment === undefined) delete process.env.TCB_ENV
     else process.env.TCB_ENV = previousEnvironment

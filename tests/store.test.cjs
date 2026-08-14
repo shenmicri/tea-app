@@ -18,7 +18,7 @@ function evaluateStore(schema, wx) {
     'createEmptySections',
     'findMissingRequired',
     'wx',
-    `${source}\nreturn { listArchives, getArchive, getPublicArchive, startArchiveDraft, saveArchive, copyArchive, deleteArchive, __test__ }`
+    `${source}\nreturn { listArchives, getArchive, getPublicArchive, recordArchiveView, listViewHistory, startArchiveDraft, saveArchive, copyArchive, deleteArchive, __test__ }`
   )(schema.createEmptySections, schema.findMissingRequired, wx)
 }
 
@@ -86,6 +86,15 @@ async function run() {
           case 'save':
           case 'copy':
             return response({ root, media, custom_items: custom })
+          case 'recordView':
+            return response({ archive_id: options.data.id })
+          case 'listHistory':
+            return response([{
+              archive_id: 'archive1',
+              tea_name: '白牡丹',
+              tea_type: '白茶',
+              last_viewed_at: new Date('2026-08-12T12:00:00Z')
+            }])
           case 'startDraft':
             return response({ id: 'reserved1', upload_token: 'archive-upload-token', revision: 0 })
           case 'delete':
@@ -120,6 +129,13 @@ async function run() {
   assert.equal((await store.listArchives()).length, 1)
   assert.equal((await store.getArchive('archive1')).id, 'archive1')
   assert.equal((await store.getPublicArchive('archive1')).status, 'published')
+  assert.equal((await store.recordArchiveView('archive1')).archive_id, 'archive1')
+  const history = await store.listViewHistory()
+  assert.deepEqual(history.map(item => item.id), ['archive1'])
+  assert.equal(history[0].name, '白牡丹')
+  assert.equal(history[0].category, '白茶')
+  assert.equal(history[0].lastViewedAt, Date.parse('2026-08-12T12:00:00Z'))
+  assert.equal(Object.hasOwn(history[0], 'coverImage'), false)
   assert.equal((await store.startArchiveDraft()).id, 'reserved1')
   assert.equal((await store.saveArchive({ status: 'published', sections: completeSections(schema), customSections: [] })).id, 'archive1')
   assert.equal((await store.copyArchive('archive1')).id, 'archive1')
@@ -127,7 +143,7 @@ async function run() {
 
   assert.deepEqual(
     calls.map(call => call.data.action),
-    ['listMine', 'getForEdit', 'getPublicArchive', 'startDraft', 'save', 'copy', 'delete']
+    ['listMine', 'getForEdit', 'getPublicArchive', 'recordView', 'listHistory', 'startDraft', 'save', 'copy', 'delete']
   )
 
   assert.throws(() => store.__test__.archiveToComposite({
@@ -151,7 +167,7 @@ async function run() {
     assert.equal(fs.existsSync(path.join(process.cwd(), iconPath.replace(/^\//, ''))), true)
   })
 
-  console.log(`passed: cloud store mappings, seven service actions, max-20 rule, and ${iconPaths.length} unique icons`)
+  console.log(`passed: cloud store mappings, nine service actions, history fields, max-20 rule, and ${iconPaths.length} unique icons`)
 }
 
 run().catch(error => {

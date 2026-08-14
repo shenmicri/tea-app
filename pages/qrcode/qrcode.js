@@ -1,4 +1,3 @@
-import { getPublicArchive } from '../../utils/store'
 import { getQrCode } from '../../utils/qrcode'
 
 Page({
@@ -15,44 +14,44 @@ Page({
 
   async onLoad(options) {
     const id = options.id || ''
-    try {
-      const archive = await getPublicArchive(id)
-      if (!archive || archive.status !== 'published') {
-        this.setData({
-          id,
-          loaded: true,
-          available: false,
-          name: archive ? archive.name : ''
-        })
-        return
-      }
-      let qr
-      try {
-        qr = await getQrCode(id)
-      } catch (error) {
-        qr = {
-          ready: false,
-          path: '',
-          fileId: '',
-          hint: error.message || '小程序码暂不可用，请稍后重试。'
-        }
-      }
+    if (!id) {
       this.setData({
-        id,
         loaded: true,
-        available: true,
-        name: archive.name,
-        archivePath: `/pages/archive/archive?id=${id}`,
+        available: false,
+        errorMessage: '缺少档案编号'
+      })
+      return
+    }
+    this.setData({
+      id,
+      loaded: true,
+      available: true,
+      archivePath: `/pages/archive/archive?id=${id}`,
+      qr: { ready: false, path: '', hint: '正在加载小程序码…' }
+    })
+    try {
+      const qr = await getQrCode(id)
+      this.setData({
+        name: qr.name,
         qr
       })
     } catch (error) {
-      this.setData({
-        id,
-        loaded: true,
-        available: false,
-        name: '',
-        errorMessage: error.message || '云端档案加载失败'
-      })
+      const unavailable = ['QR_ARCHIVE_NOT_PUBLISHED', 'NOT_FOUND', 'FORBIDDEN'].includes(error.code)
+      if (unavailable) {
+        this.setData({
+          available: false,
+          errorMessage: error.message || '这份档案尚未生成'
+        })
+      } else {
+        this.setData({
+          qr: {
+            ready: false,
+            path: '',
+            fileId: '',
+            hint: error.message || '小程序码暂不可用，请稍后重试。'
+          }
+        })
+      }
     }
   },
 

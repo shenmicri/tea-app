@@ -2,8 +2,8 @@
  * 云数据层。
  *
  * 页面继续使用 listArchives / getArchive / saveArchive 等稳定接口；真正的数据由
- * archiveService 云函数在 tea_archives、archive_media、archive_custom_items
- * 三个 Collection 之间同步。客户端不直接读写 Collection，避免草稿泄露和跨表
+ * archiveService 云函数在 tea_archives、archive_media、archive_custom_items、
+ * archive_view_history 四个 Collection 之间同步。客户端不直接读写 Collection，避免草稿泄露和跨表
  * 更新只完成一半。
  */
 
@@ -225,7 +225,24 @@ export async function getPublicArchive(id) {
   }
 }
 
-/** 为新档案预留一个不出现在列表中的云端草稿及专属上传目录。 */
+/** 消费者成功打开公开档案后记录访问；同一用户与档案只保留一条历史记录。 */
+export async function recordArchiveView(id) {
+  if (!id) return null
+  return callArchiveService('recordView', { id })
+}
+
+/** 当前用户看过的仍可访问档案，按最近查看时间倒序。 */
+export async function listViewHistory() {
+  const rows = await callArchiveService('listHistory')
+  return (Array.isArray(rows) ? rows : []).map(row => ({
+    id: row.archive_id || '',
+    name: row.tea_name || '',
+    category: row.tea_type || '',
+    lastViewedAt: toTimestamp(row.last_viewed_at)
+  })).filter(item => item.id)
+}
+
+/** 为新档案签发逻辑 ID 与专属上传目录；首次保存前不会写入 tea_archives。 */
 export async function startArchiveDraft() {
   const result = await callArchiveService('startDraft')
   return {
@@ -235,7 +252,7 @@ export async function startArchiveDraft() {
   }
 }
 
-/** 保存草稿或生成档案。三张 Collection 由云函数统一同步。 */
+/** 保存草稿或生成档案。三张档案 Collection 由云函数统一同步。 */
 export async function saveArchive(data) {
   const composite = archiveToComposite(data)
   return compositeToArchive(await callArchiveService('save', { archive: composite }))

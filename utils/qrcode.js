@@ -32,7 +32,9 @@ export async function getQrCode(id) {
     ready: true,
     path: localPath,
     fileId: result.data.file_id || '',
-    id,
+    id: result.data.archive_id || id,
+    name: result.data.tea_name || '',
+    cacheStatus: result.data.cache_status || '',
     hint: ''
   }
 }

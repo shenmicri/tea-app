@@ -29,7 +29,10 @@ async function run() {
             data: {
               file_id: 'cloud://test/codes/archive01.jpg',
               file_base64: '/9j/4A==',
-              mime_type: 'image/jpeg'
+              mime_type: 'image/jpeg',
+              archive_id: 'archive01',
+              tea_name: '白牡丹',
+              cache_status: 'hit'
             }
           }
         }
@@ -40,6 +43,8 @@ async function run() {
   const qr = await evaluateQrCode(wx).getQrCode('archive01')
   assert.equal(qr.ready, true)
   assert.equal(qr.path, '/user/archive-code-archive01.jpg')
+  assert.equal(qr.name, '白牡丹')
+  assert.equal(qr.cacheStatus, 'hit')
   assert.equal(writes.length, 1)
   assert.equal(writes[0].data, '/9j/4A==')
   assert.equal(writes[0].encoding, 'base64')

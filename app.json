@@ -1,6 +1,8 @@
 {
   "pages": [
+    "pages/index/index",
     "pages/list/list",
+    "pages/history/history",
     "pages/edit/edit",
     "pages/archive/archive",
     "pages/qrcode/qrcode"
